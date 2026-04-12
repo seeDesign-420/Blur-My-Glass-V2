@@ -1,0 +1,18 @@
+# makepkg build artifacts
+src/
+pkg/
+build/
+*.pkg.tar*
+*.log
+
+# Source checkouts pulled by makepkg
+gnome-shell/
+libgnome-volume-control/
+jasmine-gjs/
+libshew/
+
+# Symlink created during prepare()
+gvc
+
+# AUR metadata (generated via makepkg --printsrcinfo)
+.SRCINFO
