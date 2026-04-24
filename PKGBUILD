@@ -76,12 +76,11 @@ makedepends=(
   sassc
 )
 
-# --- Patch selection ---
-# Set BLUR_PATCH env var before building to choose the patch:
-#   BLUR_PATCH=liquid_glass  makepkg -si    # full liquid glass compositor
-#   makepkg -si                              # default: rounded corners mask
-_patch="${BLUR_PATCH:-rounded_corners_mask}"
-_patchfile="${_patch}.patch"
+# --- Stacked patch architecture ---
+# Base patch (rounded corners mask) is always applied.
+# Set BLUR_PATCH=liquid_glass_compositor to also apply the refraction overlay:
+#   BLUR_PATCH=liquid_glass_compositor makepkg -si    # base + liquid glass overlay
+#   makepkg -si                                       # default: base only
 
 source=(
   # GNOME Shell tags use SSH signatures which makepkg doesn't understand
@@ -99,12 +98,17 @@ prepare() {
   # Inject gvc
   ln -sf libgnome-volume-control gvc
 
-  # Copy selected patch into srcdir
-  cp "$startdir/patches/${_patchfile}" "$srcdir/${_patchfile}"
-
   cd gnome-shell
-  echo ":: Applying patch: ${_patchfile}"
-  patch -p1 -i "$srcdir/${_patchfile}"
+
+  # Always apply the base patch (AA rounded corners mask)
+  echo ":: Applying base patch: rounded_corners_mask.patch"
+  patch -p1 -i "$startdir/patches/rounded_corners_mask.patch"
+
+  # Conditionally apply the liquid glass overlay patch
+  if [[ "${BLUR_PATCH:-}" == "liquid_glass_compositor" ]]; then
+    echo ":: Applying overlay patch: liquid_glass_compositor.patch"
+    patch -p1 -i "$startdir/patches/liquid_glass_compositor.patch"
+  fi
 }
 
 build() {

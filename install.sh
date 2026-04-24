@@ -61,10 +61,12 @@ if ! command -v makepkg &>/dev/null; then
   die "makepkg not found — this installer requires Arch Linux (or an Arch-based distro)"
 fi
 
-# Verify patch file exists
-PATCH_FILE="patches/${PATCH}.patch"
-if [[ ! -f "$PATCH_FILE" ]]; then
-  die "Patch not found: $PATCH_FILE"
+# Verify patch files exist
+if [[ ! -f "patches/rounded_corners_mask.patch" ]]; then
+  die "Base patch not found: patches/rounded_corners_mask.patch"
+fi
+if [[ "$PATCH" == "liquid_glass_compositor" ]] && [[ ! -f "patches/liquid_glass_compositor.patch" ]]; then
+  die "Overlay patch not found: patches/liquid_glass_compositor.patch"
 fi
 
 # ── Banner ──────────────────────────────────────────────────────────────────
@@ -73,7 +75,10 @@ echo -e "${BOLD}╔════════════════════�
 echo -e "${BOLD}║        ${CYAN}blur-my-glass${RESET}${BOLD} installer           ║${RESET}"
 echo -e "${BOLD}╚══════════════════════════════════════════╝${RESET}"
 echo ""
-info "Patch: ${BOLD}${PATCH}${RESET}"
+info "Base patch: ${BOLD}rounded_corners_mask${RESET}"
+if [[ "$PATCH" == "liquid_glass_compositor" ]]; then
+  info "Overlay:    ${BOLD}liquid_glass_compositor${RESET}"
+fi
 info "GNOME Shell version: ${BOLD}50.0${RESET}"
 echo ""
 
