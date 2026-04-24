@@ -2,10 +2,10 @@
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-04-24 — Milestone v1.0 started
+Phase: 1 — Fix SDF Anti-Aliasing
+Plan: 01-PLAN.md (1 task, 1 wave)
+Status: Ready to execute
+Last activity: 2026-04-24 — Phase 1 planned
 
 ## Accumulated Context
 
