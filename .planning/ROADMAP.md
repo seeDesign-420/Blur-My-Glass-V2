@@ -38,7 +38,24 @@
 
 ---
 
-## Phase 3: Build Verification
+## Phase 3: Actor Coverage Audit
+
+**Goal:** Identify all GNOME Shell Clutter actors not currently wrapped with blur/glass effects and create an actionable extension plan.
+
+**Requirements:** (new — research-driven)
+
+**Changes:**
+- Research document mapping all UI actors vs. blur coverage
+- Plan document prioritizing unblurred actors for future phases
+
+**Success criteria:**
+1. Complete inventory of GNOME Shell UI actors with blur status
+2. Priority-ranked list of blur targets
+3. Feasibility assessment per target (JS extension vs. C patch)
+
+---
+
+## Phase 4: Build Verification
 
 **Goal:** End-to-end build and visual verification of both patch variants.
 
