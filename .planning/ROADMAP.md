@@ -55,7 +55,35 @@
 
 ---
 
-## Phase 4: Build Verification
+## Phase 4: BoxPointer Blur Component
+
+**Goal:** Add a new blur-my-shell component that applies blur/glass effects to all `BoxPointer`-based UI elements (Quick Settings, Date Menu, popup menus), with the same customizability as existing components.
+
+**Depends on:** Phase 3
+
+**Requirements:** BP-01 (blur), BP-02 (customization parity), BP-03 (lifecycle), BP-04 (preferences)
+
+**Changes:**
+- `components/boxpointer.js` — New blur-my-shell component (JS extension module)
+- `conveniences/keys.js` — Add `boxpointer` component settings keys
+- `schemas/org.gnome.shell.extensions.blur-my-shell.gschema.xml` — Add boxpointer schema
+- `preferences/boxpointer.js` — New preferences page (Adw.PreferencesPage)
+- `ui/boxpointer.ui` — GtkBuilder UI template for preferences
+- `extension.js` — Register new component in `enable()`/`disable()`
+- `prefs.js` — Register preferences page
+
+**Success criteria:**
+1. Quick Settings dropdown has blur behind it when opened
+2. Date Menu / Calendar dropdown has blur behind it when opened
+3. Right-click context menus have blur behind them
+4. All settings match existing component parity: blur toggle, pipeline, sigma, brightness, corner-radius, refraction-strength
+5. Preferences page visible in blur-my-shell settings under new "Popup Menus" section
+6. Clean enable/disable lifecycle — no actor leaks, no orphaned effects
+7. Works with both base patch (rounded corners only) and liquid glass overlay
+
+---
+
+## Phase 5: Build Verification
 
 **Goal:** End-to-end build and visual verification of both patch variants.
 
