@@ -1,28 +1,18 @@
 # Concerns
 
-> Mapped: 2026-04-24
+> Mapped: 2026-04-26 (refreshed — reflects Phase 1+2 changes)
 
-## Technical Debt
+## Resolved Technical Debt
 
-### 1. Liquid Glass Patch Style Reformatting
-**Severity: Medium** | **Impact: Maintainability**
+### ✅ SDF Anti-Aliasing (Phase 1)
+Previously the base patch used `step(dist, 0.0)` for a hard mask edge and was missing the interior SDF term. **Fixed:** both patches now use the correct `min(max(q.x, q.y), 0.0)` interior term with `smoothstep(fwidth(dist))` for anti-aliased edges.
 
-The `liquid_glass_compositor.patch` (1656 lines) reformats large portions of unchanged upstream code from GNOME's house style to K&R/clang-format style. This:
-- Inflates the diff by ~3× compared to semantic changes alone (~400 new/changed LOC)
-- Makes future rebasing onto new GNOME Shell versions significantly harder
-- Creates merge conflicts on lines that have no functional change
-- Makes code review difficult (noise obscures signal)
+### ✅ Duplicated Patch Logic (Phase 2)
+Previously the liquid glass patch (1656 lines) was a standalone diff that duplicated all mask infrastructure and reformatted ~60% of unchanged upstream code. **Fixed:** now uses a stacked architecture — base (313 lines) + overlay (253 lines, 86% smaller). Zero duplicated mask code.
 
-**Recommendation:** Regenerate the liquid glass patch with minimal formatting changes, matching the approach used in `rounded_corners_mask.patch` (322 lines, upstream style preserved).
+## Remaining Technical Debt
 
-### 2. Duplicated Patch Logic
-**Severity: Low** | **Impact: Maintenance burden**
-
-Both patches share the same SDF mask infrastructure (`mask_glsl`, `mask_fb`, `corner-radius` property), but are maintained as independent patch files with no shared base. Changes to the mask logic must be applied to both patches separately.
-
-**Recommendation:** Consider a stacked patch approach: base patch (mask) + optional overlay (refraction/lighting).
-
-### 3. Hardcoded GNOME Shell Version
+### 1. Hardcoded GNOME Shell Version
 **Severity: Medium** | **Impact: Version coupling**
 
 `PKGBUILD` pins to `pkgver=50.0` and `mutter_api_version='18'`. Each GNOME major release requires:
@@ -32,36 +22,17 @@ Both patches share the same SDF mask infrastructure (`mask_glsl`, `mask_fb`, `co
 
 No automation exists to detect upstream changes that break patch applicability.
 
+### 2. Overlay Patch Context Lines
+**Severity: Low** | **Impact: Fragility**
+
+The overlay patch uses context lines from the base-patched file to locate insertion points. If the base patch is modified (e.g., SDF formula change), the overlay may fail to apply due to context mismatch. This is inherent to stacked patching but could be mitigated with a `git format-patch` workflow.
+
 ## Known Issues
 
-### 1. Mask FBO Downscale Factor Inconsistency
-**Severity: Low** | **Impact: Visual quality**
+### 1. Mask FBO Downscale Factor
+**Severity: Info** | **Impact: Visual quality / performance**
 
-In the rounded corners patch, `update_mask_fbo()` receives and uses the `downscale_factor`, meaning the mask texture is downscaled along with the blur texture. In the liquid glass patch, `update_mask_fbo()` is called with hardcoded `1.0`:
-```c
-// liquid glass patch
-updated = update_actor_fbo(self, width, height, downscale_factor) &&
-          update_brightness_fbo(self, width, height, downscale_factor) &&
-          update_mask_fbo(self, width, height, 1.0);  // Always full-res
-```
-This means the mask always runs at full resolution in liquid glass mode — potentially intentional for quality but undocumented.
-
-### 2. SDF Distance Function Variant
-**Severity: Info** | **Impact: Visual correctness**
-
-The rounded corners patch uses `step(dist, 0.0)` for a hard mask edge, while the liquid glass patch uses `smoothstep(aa, -aa, dist)` with `fwidth()` for anti-aliased edges. The correct SDF box distance includes `min(max(q.x, q.y), 0.0)` for the interior term — present in liquid glass but missing from rounded corners.
-
-Rounded corners SDF:
-```glsl
-float dist = length(max(q, vec2(0.0))) - u_corner_radius;  // Missing interior term
-float m = step(dist, 0.0);  // Hard edge
-```
-
-Liquid glass SDF:
-```glsl
-float dist = min(max(q.x, q.y), 0.0) + length(max(q, vec2(0.0))) - u_corner_radius;  // Correct
-float m = smoothstep(aa, -aa, dist);  // Anti-aliased
-```
+In the base patch, `update_mask_fbo()` receives the `downscale_factor`. In a liquid glass build the mask should ideally run at full resolution for quality. This is an open design question for future optimization.
 
 ## Security Considerations
 
@@ -84,7 +55,7 @@ float m = smoothstep(aa, -aa, dist);  // Anti-aliased
 ## Performance Concerns
 
 ### 1. Additional FBO Pass
-Both patches add a `mask_fb` framebuffer pass to the render pipeline. This means:
+Both build variants add a `mask_fb` framebuffer pass to the render pipeline. This means:
 - One additional texture allocation per blur effect instance
 - One additional full-screen draw call per paint cycle
 - For N blur effects active simultaneously, that's N additional texture binds + draws
@@ -111,4 +82,13 @@ The refraction shader hooks into `COGL_SNIPPET_HOOK_TEXTURE_LOOKUP` — an inter
 The patch inserts the mask node as a parent of the brightness node in the paint tree. This depends on the specific structure of `create_blur_nodes()` which is internal to `ShellBlurEffect`. Any upstream refactoring of the paint node tree will break both patches.
 
 ### 3. Single File, Single Function Patches
-Both patches modify a single source file (`shell-blur-effect.c`). This is both a strength (minimal surface area) and a weakness (any upstream change to this file may conflict). The file is ~950 lines upstream and grows to ~1100 lines with the liquid glass patch.
+Both patches modify a single source file (`shell-blur-effect.c`). This is both a strength (minimal surface area) and a weakness (any upstream change to this file may conflict). The file is ~950 lines upstream and grows to ~1050+ with the stacked patches.
+
+## Extension Points
+
+### How to add new effects
+To extend the compositor with additional visual effects:
+1. **Add GLSL strings** to the overlay patch (or create a new overlay)
+2. **Add GObject properties** with getter/setter pairs in `shell-blur-effect.c/.h`
+3. **Wire uniforms** in `update_brightness()` or create a new pipeline function
+4. **Expose to JS** via GObject introspection (automatic for GObject properties)

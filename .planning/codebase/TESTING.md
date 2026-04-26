@@ -1,6 +1,6 @@
 # Testing
 
-> Mapped: 2026-04-24
+> Mapped: 2026-04-26 (refreshed)
 
 ## Overview
 
@@ -9,6 +9,7 @@ blur-my-glass has **no automated tests** of its own. The project relies on:
 1. Upstream GNOME Shell's test suite (inherited, disabled in build)
 2. Manual visual verification after installation
 3. Successful compilation as a basic smoke test
+4. Grep-based verification of patch content (used during Phase 1+2)
 
 ## Upstream Test Infrastructure
 
@@ -36,7 +37,8 @@ The `PKGBUILD` builds with `-D tests=false` because:
 - Anti-aliasing smoothstep transitions
 
 ### Patch Application Tests (not implemented)
-- Verify patch applies cleanly to current upstream tag
+- Verify base patch applies cleanly to current upstream tag
+- Verify overlay applies cleanly on top of base
 - Verify patched source compiles without warnings
 - Verify GObject introspection exposes new properties
 
@@ -48,13 +50,15 @@ The `PKGBUILD` builds with `-D tests=false` because:
 
 | Step | Method | Automated? |
 |------|--------|------------|
-| Patch applies | `patch -p1` in `prepare()` | Semi (build fails if not) |
+| Base patch applies | `patch -p1` in `prepare()` | Semi (build fails if not) |
+| Overlay applies on base | `patch -p1` in `prepare()` | Semi (build fails if not) |
 | Source compiles | `meson compile` in `build()` | Semi (build fails if not) |
 | Package installs | `pacman -U` | Semi (install fails if not) |
 | Blur renders correctly | Manual visual inspection | No |
 | Corner radius works | Manual testing with blur-my-shell | No |
 | Refraction visible | Manual testing (liquid glass only) | No |
 | No regressions | Manual comparison with stock shell | No |
+| Patch content correct | `grep` for expected GLSL/property code | Semi (used in Phase 2) |
 
 ## Coverage
 

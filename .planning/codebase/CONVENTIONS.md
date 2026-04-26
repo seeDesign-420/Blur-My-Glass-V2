@@ -1,52 +1,30 @@
 # Conventions
 
-> Mapped: 2026-04-24
+> Mapped: 2026-04-26 (refreshed — reflects Phase 1+2 changes)
 
 ## Code Style
 
 ### C Code (Patch Target)
 
-The project maintains **two different C styles** across the two patches, reflecting their development history:
+Both patches now **follow upstream GNOME Shell style** consistently:
+- Function braces on new line
+- Space before parentheses: `if (condition)`, `function_call (arg)`
+- Aligned parameter indentation
+- `G_UNLIKELY()` macros for cold paths
+```c
+static CoglPipeline*
+create_mask_pipeline (void)
+{
+  static CoglPipeline *mask_pipeline = NULL;
 
-#### Rounded Corners Mask Patch
-- **Follows upstream GNOME Shell style** exactly:
-  - Function braces on new line
-  - Space before parentheses: `if (condition)`, `function_call (arg)`
-  - Aligned parameter indentation
-  - `G_UNLIKELY()` macros for cold paths
-  ```c
-  static CoglPipeline*
-  create_mask_pipeline (void)
+  if (G_UNLIKELY (mask_pipeline == NULL))
   {
-    static CoglPipeline *mask_pipeline = NULL;
-
-    if (G_UNLIKELY (mask_pipeline == NULL))
-    {
-      CoglSnippet *snippet;
-      mask_pipeline = create_base_pipeline ();
-      ...
-    }
+    CoglSnippet *snippet;
+    mask_pipeline = create_base_pipeline ();
+    ...
   }
-  ```
-
-#### Liquid Glass Compositor Patch
-- **Uses clang-format / K&R style** — deviates from GNOME conventions:
-  - Opening brace on same line as function definition
-  - No space before parentheses
-  - Condensed parameter lists
-  ```c
-  static CoglPipeline *create_mask_pipeline(void) {
-    static CoglPipeline *mask_pipeline = NULL;
-
-    if (G_UNLIKELY(mask_pipeline == NULL)) {
-      CoglSnippet *snippet;
-      mask_pipeline = create_base_pipeline();
-      ...
-    }
-  }
-  ```
-
-> **Note:** The liquid glass patch reformats large portions of unchanged code, inflating the diff from ~400 semantic LOC to 1656 total lines.
+}
+```
 
 ### GLSL Shader Code
 - Inline strings in C, concatenated with `\\n` line terminators
@@ -82,10 +60,10 @@ The project maintains **two different C styles** across the two patches, reflect
 ## Error Handling
 
 ### C Layer
-- GObject property validation: `g_return_if_fail(SHELL_IS_BLUR_EFFECT(self))`
+- GObject property validation: `g_return_if_fail (SHELL_IS_BLUR_EFFECT (self))`
 - FBO creation failure: `goto fail` → fallback to unblurred actor painting
 - Pipeline errors: `g_warning()` for non-fatal offscreen buffer failures
-- Value clamping: `MAX(0.f, corner_radius)`, `CLAMP(refraction_strength, 0.f, 2.f)`
+- Value clamping: `MAX (0.f, corner_radius)`, `CLAMP (refraction_strength, 0.f, 2.f)`
 
 ### Bash Layer
 - `die()` for fatal errors (missing `makepkg`, missing patch file)
@@ -104,7 +82,20 @@ All new functionality follows the standard GObject property lifecycle:
 
 ## Patch Discipline
 
-- Each patch is a complete, self-contained diff against upstream `shell-blur-effect.c` and `.h`
+### Stacked Architecture
+- **Base patch** (`rounded_corners_mask.patch`): Self-contained against upstream, always applied first
+- **Overlay patch** (`liquid_glass_compositor.patch`): Applied on top of base, adds refraction-only code
+- Both patches must preserve upstream GNOME Shell code style (no reformatting)
+- Context lines in overlay must match post-base-patch file state exactly
+
+### File Management
 - Patches are maintained in `patches/` (the canonical source of truth)
-- Build-time copies are placed in `src/` by `prepare()` — these are ephemeral
+- Build applies patches directly from `$startdir/patches/` (no more `cp` to `$srcdir`)
 - The `.gitignore` excludes all build artifacts, keeping the repo minimal (5 tracked files)
+
+## Commit Conventions
+
+AI commits include:
+```
+Co-Authored-By: Antigravity <noreply@example.com>
+```

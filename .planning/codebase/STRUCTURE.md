@@ -1,6 +1,6 @@
 # Directory Structure
 
-> Mapped: 2026-04-24
+> Mapped: 2026-04-26 (refreshed — reflects Phase 1+2 changes)
 
 ## Project Root
 
@@ -14,9 +14,9 @@ blur-my-glass-live/
 ├── PKGBUILD                       # ★ Arch Linux package build recipe
 ├── README.md                      # Project documentation
 ├── install.sh                     # ★ User-facing installer script
-├── patches/                       # ★ CORE DELIVERABLE
-│   ├── rounded_corners_mask.patch #   Stable: SDF rounded corners (322 lines)
-│   └── liquid_glass_compositor.patch # Experimental: full glass pipeline (1656 lines)
+├── patches/                       # ★ CORE DELIVERABLE (stacked)
+│   ├── rounded_corners_mask.patch #   Base: AA SDF rounded corners (313 lines)
+│   └── liquid_glass_compositor.patch # Overlay: refraction + lighting (253 lines)
 │
 ├── gnome-shell/                   # [gitignored] Bare git clone of upstream
 ├── libgnome-volume-control/       # [gitignored] Subproject source
@@ -39,20 +39,25 @@ blur-my-glass-live/
 │   │   ├── data/                  #   GSettings schemas, desktop files
 │   │   ├── tests/                 #   Shell tests (jasmine-gjs based)
 │   │   └── docs/                  #   API documentation sources
-│   ├── build/                     #   Meson build output
-│   │   ├── build.ninja            #   Generated ninja build file
-│   │   ├── compile_commands.json  #   Compilation database (270KB)
-│   │   └── config.h               #   Generated configuration header
-│   ├── liquid_glass_compositor.patch  # Copy of selected patch (placed by prepare())
-│   └── rounded_corners_mask.patch     # Copy of selected patch
+│   └── build/                     #   Meson build output
+│       ├── build.ninja            #   Generated ninja build file
+│       ├── compile_commands.json  #   Compilation database (270KB)
+│       └── config.h               #   Generated configuration header
 │
 ├── pkg/                           # [gitignored] makepkg packaging output
-│   ├── gnome-shell-blur-my-glass/
-│   └── gnome-shell-blur-my-glass-docs/
+│   ├── gnome-shell-rounded-blur/
+│   └── gnome-shell-rounded-blur-docs/
 │
 ├── *.pkg.tar.zst                  # [gitignored] Built package archives
 └── .planning/                     # GSD planning documents
-    └── codebase/                  #   This codebase map
+    ├── PROJECT.md                 #   Project definition
+    ├── REQUIREMENTS.md            #   Formal requirements
+    ├── ROADMAP.md                 #   Phase roadmap
+    ├── STATE.md                   #   Current execution state
+    ├── codebase/                  #   This codebase map (7 documents)
+    └── phases/                    #   Phase execution artifacts
+        ├── 01-sdf-anti-aliasing/
+        └── 02-stacked-patch-architecture/
 ```
 
 ## Key Locations
@@ -61,11 +66,11 @@ blur-my-glass-live/
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `PKGBUILD` | 163 | Package build recipe — sources, deps, prepare/build/package functions |
-| `install.sh` | 118 | User-facing installer with arg parsing, preflight checks, dependency install |
-| `README.md` | 90 | Project documentation |
-| `patches/rounded_corners_mask.patch` | 322 | Stable patch: SDF corner radius mask |
-| `patches/liquid_glass_compositor.patch` | 1656 | Experimental patch: full liquid glass material pipeline |
+| `PKGBUILD` | ~165 | Package build recipe — sources, deps, stacked prepare/build/package |
+| `install.sh` | ~121 | User-facing installer with arg parsing, preflight checks, dependency install |
+| `README.md` | ~90 | Project documentation |
+| `patches/rounded_corners_mask.patch` | 313 | Base patch: AA SDF corner radius mask (always applied) |
+| `patches/liquid_glass_compositor.patch` | 253 | Overlay patch: refraction + specular + lighting (opt-in) |
 
 ### Primary Patch Target
 
@@ -76,7 +81,7 @@ blur-my-glass-live/
 
 ## Naming Conventions
 
-- **Patch files:** `snake_case.patch` matching `BLUR_PATCH` env var values
+- **Patch files:** `snake_case.patch` — base is always applied, overlay is opt-in via `BLUR_PATCH` env var
 - **C files:** `shell-{feature}.c` / `.h` (GNOME Shell convention, kebab-case)
 - **Package name:** `gnome-shell-rounded-blur` (hyphenated)
 - **GObject properties:** kebab-case (`corner-radius`, `refraction-strength`)

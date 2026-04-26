@@ -1,6 +1,6 @@
 # External Integrations
 
-> Mapped: 2026-04-24
+> Mapped: 2026-04-26 (refreshed)
 
 ## Overview
 
@@ -36,7 +36,7 @@ All new properties (`corner-radius`, `refraction-strength`) are exposed via GObj
 
 | Consumer | Integration Point |
 |----------|------------------|
-| **blur-my-shell** extension | Sets `corner-radius` property on `ShellBlurEffect` instances to achieve rounded blur regions |
+| **blur-my-shell** extension | Sets `corner-radius` and optionally `refraction-strength` on `ShellBlurEffect` instances |
 | **GSettings** | Potential schema bindings for runtime control of refraction parameters |
 
 ## Package Distribution
