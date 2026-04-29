@@ -1,5 +1,5 @@
---- a/src/shell-blur-effect.c
-+++ b/src/shell-blur-effect.c
+--- src/shell-blur-effect.c.orig	2026-04-26 20:03:42.007184646 +0200
++++ src/shell-blur-effect.c	2026-04-26 20:05:11.450469700 +0200
 @@ -48,7 +48,85 @@
  "uniform float brightness;                                                 \n";
  
@@ -236,8 +236,8 @@
 +
 +  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_REFRACTION_STRENGTH]);
 +}
---- a/src/shell-blur-effect.h
-+++ b/src/shell-blur-effect.h
+--- src/shell-blur-effect.h.orig	2026-04-26 20:03:42.009020927 +0200
++++ src/shell-blur-effect.h	2026-04-26 20:05:23.435441317 +0200
 @@ -58,4 +58,8 @@
  void shell_blur_effect_set_corner_radius (ShellBlurEffect *self,
                                            float            corner_radius);

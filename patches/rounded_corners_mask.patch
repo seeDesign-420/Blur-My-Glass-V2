@@ -1,14 +1,9 @@
 Subject: [PATCH] Shell.BlurEffect: apply rounded corners mask
 ---
-Index: src/shell-blur-effect.c
-IDEA additional info:
-Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
-<+>UTF-8
-===================================================================
 diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
---- a/src/shell-blur-effect.c	(revision 9348309b157b464ffb8bd677880f55e3ebefca06)
-+++ b/src/shell-blur-effect.c	(revision e05cac326155ec89f62095d3ef7b1f4a999b6c61)
-@@ -50,6 +50,19 @@
+--- a/src/shell-blur-effect.c
++++ b/src/shell-blur-effect.c
+@@ -50,6 +50,21 @@
  static const gchar *brightness_glsl =
  "  cogl_color_out.rgb *= brightness;                                       \n";
  
@@ -304,14 +299,9 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
 +
 +  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_CORNER_RADIUS]);
 +}
-Index: src/shell-blur-effect.h
-IDEA additional info:
-Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
-<+>UTF-8
-===================================================================
 diff --git a/src/shell-blur-effect.h b/src/shell-blur-effect.h
---- a/src/shell-blur-effect.h	(revision 9348309b157b464ffb8bd677880f55e3ebefca06)
-+++ b/src/shell-blur-effect.h	(revision e05cac326155ec89f62095d3ef7b1f4a999b6c61)
+--- a/src/shell-blur-effect.h
++++ b/src/shell-blur-effect.h
 @@ -54,4 +54,8 @@
  void shell_blur_effect_set_mode (ShellBlurEffect *self,
                                   ShellBlurMode    mode);
