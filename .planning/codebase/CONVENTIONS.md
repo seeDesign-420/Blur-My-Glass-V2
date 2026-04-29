@@ -1,17 +1,17 @@
-# Conventions
+# Conventions — blur-my-glass
 
-> Mapped: 2026-04-26 (refreshed — reflects Phase 1+2 changes)
+> Last mapped: 2026-04-29
 
 ## Code Style
 
-### C Code (Patch Target)
+### C Code (Patches)
 
-Both patches now **follow upstream GNOME Shell style** consistently:
-- Function braces on new line
-- Space before parentheses: `if (condition)`, `function_call (arg)`
-- Aligned parameter indentation
-- `G_UNLIKELY()` macros for cold paths
+All C code in patches follows **GNOME/GLib coding conventions** exactly — this is mandatory because patches must apply cleanly to upstream and must not reformat unchanged lines.
+
+Key conventions observed in `shell-blur-effect.c`:
+
 ```c
+// Brace style: opening brace on new line for function bodies
 static CoglPipeline*
 create_mask_pipeline (void)
 {
@@ -19,83 +19,156 @@ create_mask_pipeline (void)
 
   if (G_UNLIKELY (mask_pipeline == NULL))
   {
-    CoglSnippet *snippet;
-    mask_pipeline = create_base_pipeline ();
-    ...
+    // ...
   }
+
+  return cogl_pipeline_copy (mask_pipeline);
 }
+
+// Pointer style: space before asterisk
+CoglPipeline *pipeline;
+ShellBlurEffect *self;
+
+// GObject property pattern: enum + g_param_spec + install
+properties[PROP_CORNER_RADIUS] =
+  g_param_spec_float ("corner-radius", NULL, NULL,
+                      0.f, G_MAXFLOAT, 0.f,
+                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
+// Return guards
+g_return_val_if_fail (SHELL_IS_BLUR_EFFECT (self), 0.f);
+g_return_if_fail (SHELL_IS_BLUR_EFFECT (self));
 ```
 
-### GLSL Shader Code
-- Inline strings in C, concatenated with `\\n` line terminators
-- Right-padded with spaces to align `\\n` terminators visually
-- Uniform naming: `u_` prefix for uniforms (`u_corner_radius`, `u_size`)
-- Fragment-local variables: `r_` prefix for refraction temporaries (`r_sd`, `r_transition`, `r_border`)
+### GLSL Shader Strings
+
+Embedded as C string literal arrays with consistent formatting:
+
+```c
+static const gchar *mask_glsl =
+"  vec2 uv = cogl_tex_coord_in[0].st;                                      \n"
+"  vec2 p  = uv * u_size;                                                  \n"
+"  vec2 q  = abs(p - 0.5 * u_size) - (0.5 * u_size - u_corner_radius);     \n";
+```
+
+- Each line is a separate C string literal (auto-concatenated)
+- Trailing `\n` with consistent right-padding (80-column alignment)
+- Two-space indentation within shader code
+- Comments use `/* */` style inline
 
 ### Bash Scripts
-- `set -euo pipefail` — strict mode
+
+- `set -euo pipefail` at top of `install.sh`
 - Color-coded output functions: `info()`, `ok()`, `warn()`, `err()`, `die()`
-- Argument parsing via `for arg in "$@"; case` loop
-- Array-based dependency checking pattern
+- Arguments parsed via `for arg in "$@"; case` pattern
+- Consistent quoting: `"$variable"`, `"${array[@]}"`
 
 ### PKGBUILD
-- Follows Arch Linux packaging standards
-- `pkgbase` / `pkgname` array for split packages (main + docs)
-- Epoch versioning (`epoch=1`) for version ordering
-- Standard `prepare()` → `build()` → `package_*()` functions
+
+- Standard Arch Linux PKGBUILD conventions
+- Array style: one element per line for readability
+- Comments document the stacked patch architecture
+
+## Patch Writing Conventions
+
+### Context Lines
+
+Patches use standard unified diff format. The overlay patch's context lines reference code introduced by the base patch — establishing a dependency order.
+
+### Requirement: No Upstream Reformatting
+
+**PATCH-04** requirement: patches must not reformat unchanged upstream lines. Only lines that are functionally modified should appear as changes.
+
+### Patch Naming
+
+- `rounded_corners_mask.patch` — descriptive `snake_case` matching feature name
+- `liquid_glass_compositor.patch` — same pattern
+
+## Error Handling Patterns
+
+### C Code
+
+```c
+// GObject return guards (defensive, returns default on invalid input)
+g_return_val_if_fail (SHELL_IS_BLUR_EFFECT (self), 0.f);
+g_return_if_fail (SHELL_IS_BLUR_EFFECT (self));
+
+// Uniform location checks (graceful degradation)
+if (self->corner_radius_uniform > -1)
+    cogl_pipeline_set_uniform_1f (...);
+
+// FBO update chain (all-or-nothing)
+updated = update_actor_fbo (self, width, height, downscale_factor) &&
+          update_brightness_fbo (self, width, height, downscale_factor) &&
+          update_mask_fbo (self, width, height, downscale_factor);
+
+// Property change deduplication
+if (self->corner_radius == corner_radius)
+    return;
+```
+
+### Bash
+
+```bash
+set -euo pipefail          # Exit on error, undefined vars, pipe failures
+die() { err "$@"; exit 1; } # Fatal error with message
+
+# Preflight checks
+if ! command -v makepkg &>/dev/null; then
+  die "makepkg not found — this installer requires Arch Linux"
+fi
+if [[ ! -f "patches/rounded_corners_mask.patch" ]]; then
+  die "Base patch not found: patches/rounded_corners_mask.patch"
+fi
+```
 
 ## Naming Patterns
 
-| Context | Convention | Example |
-|---------|-----------|---------|
-| C functions | `snake_case` with prefix | `shell_blur_effect_set_corner_radius()` |
-| C struct members | `snake_case` | `self->corner_radius`, `self->mask_fb` |
-| GObject properties | kebab-case strings | `"corner-radius"`, `"refraction-strength"` |
-| Property enum values | `PROP_UPPER_SNAKE` | `PROP_CORNER_RADIUS` |
-| GLSL uniforms | `u_` prefix | `u_corner_radius`, `u_refract_size` |
-| GLSL locals (refraction) | `r_` prefix | `r_sd`, `r_transition` |
-| Patch files | `snake_case` | `rounded_corners_mask.patch` |
-| Package names | kebab-case | `gnome-shell-rounded-blur` |
+### GLSL Uniform Prefixes
 
-## Error Handling
+| Prefix | Scope | Examples |
+|--------|-------|---------|
+| `u_` | Mask pipeline uniforms | `u_corner_radius`, `u_size` |
+| `u_refract_` | Refraction pipeline uniforms | `u_refract_size`, `u_refract_radius` |
+| `r_` | Refraction local/global shader variables | `r_transition`, `r_border`, `r_gradient`, `r_sd` |
+| (none) | Upstream uniforms | `brightness` |
 
-### C Layer
-- GObject property validation: `g_return_if_fail (SHELL_IS_BLUR_EFFECT (self))`
-- FBO creation failure: `goto fail` → fallback to unblurred actor painting
-- Pipeline errors: `g_warning()` for non-fatal offscreen buffer failures
-- Value clamping: `MAX (0.f, corner_radius)`, `CLAMP (refraction_strength, 0.f, 2.f)`
+### GObject Property Pattern
 
-### Bash Layer
-- `die()` for fatal errors (missing `makepkg`, missing patch file)
-- `warn()` for recoverable conditions (missing makedepends)
-- Preflight checks before build (distro check, patch file existence)
+Each new property follows this complete pattern:
+1. Enum value: `PROP_CORNER_RADIUS`
+2. Struct field: `float corner_radius;`
+3. Uniform handle: `int corner_radius_uniform;`
+4. `get_property()` case
+5. `set_property()` case
+6. `g_param_spec_float()` registration
+7. Public getter: `shell_blur_effect_get_corner_radius()`
+8. Public setter: `shell_blur_effect_set_corner_radius()` with change guard + repaint queue
+9. Header declaration
 
-## GObject Patterns
+### Cache Invalidation
 
-All new functionality follows the standard GObject property lifecycle:
-1. **Define** property spec in `_class_init()` with `g_param_spec_float()`
-2. **Register** via `g_object_class_install_properties()`
-3. **Handle** get/set in `_get_property()` / `_set_property()` switch
-4. **Expose** getter/setter functions with `g_return_*_if_fail()` guards
-5. **Notify** changes via `g_object_notify_by_pspec()`
-6. **Invalidate** cache flags and `clutter_effect_queue_repaint()` on change
+Property setters clear the render cache and queue a repaint:
 
-## Patch Discipline
-
-### Stacked Architecture
-- **Base patch** (`rounded_corners_mask.patch`): Self-contained against upstream, always applied first
-- **Overlay patch** (`liquid_glass_compositor.patch`): Applied on top of base, adds refraction-only code
-- Both patches must preserve upstream GNOME Shell code style (no reformatting)
-- Context lines in overlay must match post-base-patch file state exactly
-
-### File Management
-- Patches are maintained in `patches/` (the canonical source of truth)
-- Build applies patches directly from `$startdir/patches/` (no more `cp` to `$srcdir`)
-- The `.gitignore` excludes all build artifacts, keeping the repo minimal (5 tracked files)
-
-## Commit Conventions
-
-AI commits include:
+```c
+self->cache_flags &= ~BLUR_APPLIED;
+if (self->actor)
+    clutter_effect_queue_repaint (CLUTTER_EFFECT (self));
+g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_CORNER_RADIUS]);
 ```
-Co-Authored-By: Antigravity <noreply@example.com>
+
+## Commit Message Conventions
+
+From git history, the project uses conventional commits:
+
 ```
+feat: initial release
+fix(shader): anti-alias SDF rounded corners mask
+refactor(02): stacked patch architecture
+docs(01): plan phase 1
+docs: map existing codebase
+```
+
+Pattern: `type(scope): description`
+- Types: `feat`, `fix`, `refactor`, `docs`
+- Scope: phase number or component name

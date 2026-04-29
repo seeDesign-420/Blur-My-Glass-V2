@@ -1,80 +1,93 @@
-# Technology Stack
+# Tech Stack — blur-my-glass
 
-> Mapped: 2026-04-26 (refreshed — reflects Phase 1+2 changes)
-
-## Overview
-
-**blur-my-glass** is an Arch Linux PKGBUILD project that patches and recompiles GNOME Shell 50.0 to add custom blur effects (anti-aliased rounded corner masking and liquid glass refraction) to the Mutter compositor's `ShellBlurEffect`. It uses a stacked patch architecture where a base patch is always applied and an optional overlay patch adds advanced effects.
+> Last mapped: 2026-04-29
 
 ## Languages
 
 | Language | Role | Files |
 |----------|------|-------|
-| **C** | Core patch target — `shell-blur-effect.c` / `.h` | Base: ~300 LOC changes, Overlay: ~250 LOC changes |
-| **GLSL** | Inline shader strings embedded in C | SDF mask, refraction lens, specular lighting fragments |
-| **Bash** | Installer script, PKGBUILD | `install.sh`, `PKGBUILD` |
-| **Meson** | Build system (upstream GNOME Shell) | `src/gnome-shell/meson.build` (367 lines) |
+| **C** | Core — patched source files (`shell-blur-effect.c`, `.h`) | 2 patched files (1276 LOC combined) |
+| **GLSL** | Shader code embedded as C string literals | Inline in `shell-blur-effect.c` |
+| **Bash** | Build orchestration, installation | `install.sh` (123 LOC), `PKGBUILD` (167 LOC) |
+| **Meson** | Upstream GNOME Shell build system | `src/gnome-shell/meson.build` (inherited) |
+| **Unified Diff** | Patch deliverables | `patches/*.patch` (562 LOC total) |
 
-## Runtime
+## Runtime / Target Environment
 
-- **Target OS:** Arch Linux (or derivatives like CachyOS, EndeavourOS, Manjaro)
 - **Desktop:** GNOME 50 on Wayland
-- **Compositor:** Mutter 50 (libmutter-18 API)
-- **Package manager:** pacman / makepkg
-- **Shell runtime:** GJS (GNOME JavaScript) for shell UI logic
+- **Compositor:** Mutter 18 API (`libmutter-18.so`)
+- **GPU API:** OpenGL ES via Cogl (Mutter's GPU abstraction)
+- **GObject Runtime:** GLib 2.86+, GJS 1.87+
+- **Distribution:** Arch Linux (or Arch-based derivatives)
 
 ## Build System
 
-### PKGBUILD (`PKGBUILD`)
-- Package name: `gnome-shell-rounded-blur` (provides/conflicts `gnome-shell`)
-- Source: upstream GNOME Shell 50.0 from `gitlab.gnome.org/GNOME/gnome-shell.git`
-- Subprojects: `libgnome-volume-control`, `jasmine-gjs`, `libshew`
-- Build: `arch-meson` → `meson compile -C build`
-- **Stacked patching:** base always applied; overlay applied when `BLUR_PATCH=liquid_glass_compositor`
+| Tool | Version Req | Purpose |
+|------|-------------|---------|
+| `makepkg` | Arch native | Package builder — drives entire build |
+| `meson` | ≥ 1.3.0 | GNOME Shell's build system |
+| `ninja` | (via meson) | Actual compilation driver |
+| `gcc` | system | C compiler with `-O3 -fno-semantic-interposition` |
+| `sassc` | any | SASS→CSS compilation for GNOME Shell themes |
+| `patch` | system | Applies `.patch` files in `prepare()` |
+| `git` | any | Source checkout from GNOME GitLab |
 
-### Compiler flags
+### Build Flow
+
 ```
-CFLAGS: -O3 -fno-semantic-interposition
-LDFLAGS: -Wl,-Bsymbolic-functions
+install.sh → makepkg (PKGBUILD)
+  → prepare(): git clone + patch -p1
+  → build(): meson setup + meson compile
+  → package(): meson install → .pkg.tar.zst
+  → pacman -U: replaces system gnome-shell
 ```
 
-## Dependencies
+## Key Dependencies (Runtime)
 
-### Build dependencies (makedepends)
-- `asciidoc`, `bash-completion`, `evolution-data-server`
-- `gi-docgen`, `git`, `glib2-devel`
-- `gnome-keybindings`, `gobject-introspection`
-- `meson`, `python-docutils`, `sassc`
+From `PKGBUILD` `depends=()`:
 
-### Runtime dependencies (key ones)
-- `mutter` (libmutter-18.so) — the compositor we're patching against
-- `gjs` — JavaScript runtime for GNOME Shell
-- `gtk4`, `libadwaita` — UI toolkit
-- `cairo`, `pango`, `graphene` — rendering primitives
-- `libglvnd` — OpenGL dispatch (for GLSL shaders)
-- `libpipewire` — screen recording support
+| Dependency | Role |
+|-----------|------|
+| `mutter` | Compositor framework — provides Clutter, Cogl, MTK |
+| `gjs` | JavaScript engine for GNOME Shell UI |
+| `gtk4` | GTK 4 widget toolkit |
+| `libadwaita` | Adaptive UI library |
+| `cairo` / `pango` | 2D rendering / text layout |
+| `graphene` | GPU-oriented math types (used by Clutter) |
+| `libpipewire` / `libpulse` | Audio/screen recording |
+| `polkit` / `libsecret` | Privilege elevation / secrets |
+
+## Key Dependencies (Build-time)
+
+From `PKGBUILD` `makedepends=()`:
+
+| Dependency | Role |
+|-----------|------|
+| `gobject-introspection` | GIR generation for JS bindings |
+| `gi-docgen` | API documentation generation |
+| `glib2-devel` | GLib build headers |
+| `evolution-data-server` | Calendar integration (optional module) |
+
+## Source Repositories (Vendored via Git)
+
+| Repo | Commit/Tag | Purpose |
+|------|-----------|---------|
+| `gnome-shell` | tag `50.0` | Main source being patched |
+| `libgnome-volume-control` | `664eba4c` | Audio control subproject |
+| `jasmine-gjs` | `856465dd` | GJS test framework subproject |
+| `libshew` | `ed782477` | Shell extensions host library |
 
 ## Configuration
 
-### Patch variants (stacked at build time)
-| Layer | Applied | Env var | Patch file |
-|-------|---------|---------|------------|
-| Base | Always | (default) | `patches/rounded_corners_mask.patch` (313 lines) |
-| Overlay | Opt-in | `BLUR_PATCH=liquid_glass_compositor` | `patches/liquid_glass_compositor.patch` (253 lines) |
+- No runtime configuration files in this repo — configuration is compile-time via patch selection
+- `BLUR_PATCH` environment variable selects patch variant at build time:
+  - Unset/default → base patch only (rounded corners mask)
+  - `liquid_glass_compositor` → base + overlay patch
+- Meson options: `gtk_doc=true`, `tests=false`
+- Compiler flags: `-O3 -fno-semantic-interposition`, linker: `-Wl,-Bsymbolic-functions`
 
-### GObject properties added to `ShellBlurEffect`
-| Property | Type | Range | Layer |
-|----------|------|-------|-------|
-| `corner-radius` | float | 0 → ∞ | Base |
-| `refraction-strength` | float | 0 → 2 | Overlay |
+## Package Output
 
-## Key Directories
-
-| Path | Purpose |
-|------|---------|
-| `patches/` | Maintained patch files (the project's core deliverable) |
-| `PKGBUILD` | Arch Linux package build recipe |
-| `install.sh` | User-facing installer script |
-| `src/gnome-shell/` | Checked-out upstream GNOME Shell source (gitignored, created by makepkg) |
-| `src/build/` | Meson build output (gitignored) |
-| `pkg/` | makepkg staging directory (gitignored) |
+- `gnome-shell-rounded-blur` — replaces system `gnome-shell` (`provides=('gnome-shell')`, `conflicts=('gnome-shell')`)
+- `gnome-shell-rounded-blur-docs` — API documentation package
+- Version: `1:50.0-1` (epoch 1)

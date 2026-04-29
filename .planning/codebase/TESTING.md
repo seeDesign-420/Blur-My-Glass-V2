@@ -1,71 +1,82 @@
-# Testing
+# Testing — blur-my-glass
 
-> Mapped: 2026-04-26 (refreshed)
+> Last mapped: 2026-04-29
 
-## Overview
+## Testing Strategy
 
-blur-my-glass has **no automated tests** of its own. The project relies on:
+blur-my-glass has **no automated test suite of its own**. Testing is entirely manual and visual — which is inherent to the nature of the project (compositor-level shader patches that produce visual effects).
 
-1. Upstream GNOME Shell's test suite (inherited, disabled in build)
-2. Manual visual verification after installation
-3. Successful compilation as a basic smoke test
-4. Grep-based verification of patch content (used during Phase 1+2)
+## Current Verification Approach
 
-## Upstream Test Infrastructure
+### Build Verification
 
-GNOME Shell's test suite exists at `src/gnome-shell/tests/` and uses:
+The primary automated check is whether the patched source compiles:
 
-- **Framework:** jasmine-gjs (JavaScript BDD testing for GJS)
-- **Runner:** `gnome-shell-dbus-runner.py` — launches a test environment with mocked DBus services
-- **Test types:**
-  - `tests/unit/` — Unit tests for JavaScript modules
-  - `tests/shell/` — Integration tests with shell components
-  - `tests/dbusmock-templates/` — Mock service definitions
-- **Build integration:** Meson test targets, controlled by `-D tests=false` option
+```bash
+# Default build (base patch only)
+makepkg -si
 
-### Why tests are disabled
-The `PKGBUILD` builds with `-D tests=false` because:
-- Tests require a running Wayland session and dbus environment
-- The build target is a production system package, not a development environment
-- Test execution during `makepkg` would add significant build time and dependencies
+# With liquid glass overlay
+BLUR_PATCH=liquid_glass_compositor makepkg -si
+```
 
-## What Could Be Tested
+A successful `meson compile` confirms:
+- Patches apply cleanly to upstream source
+- No C compilation errors or warnings from patched code
+- GObject property registrations are valid
+- GLSL strings are syntactically correct (as C string literals)
 
-### Shader Unit Tests (not implemented)
-- SDF distance function accuracy for corner cases (zero radius, very large radius)
-- Refraction UV warp output validation (boundary conditions)
-- Anti-aliasing smoothstep transitions
+### Visual Verification (Manual)
 
-### Patch Application Tests (not implemented)
-- Verify base patch applies cleanly to current upstream tag
-- Verify overlay applies cleanly on top of base
-- Verify patched source compiles without warnings
-- Verify GObject introspection exposes new properties
+Per the roadmap Phase 5 success criteria:
 
-### Visual Regression Tests (not implemented)
-- Screenshot comparison of blur with/without corner-radius
-- Refraction distortion pattern validation
+1. **Rounded corners**: Visually smooth at radii 0, 12, 24, 48 px
+2. **Anti-aliasing**: No pixel-stepping or jagged edges at any zoom level
+3. **Liquid glass refraction**: Warped background visible through blur region
+4. **Specular highlights**: Border glow and top-light gloss visible
+5. **No regression**: Existing blur-my-shell functionality unaffected
 
-## Current Verification Process
+### Patch Integrity Verification
 
-| Step | Method | Automated? |
-|------|--------|------------|
-| Base patch applies | `patch -p1` in `prepare()` | Semi (build fails if not) |
-| Overlay applies on base | `patch -p1` in `prepare()` | Semi (build fails if not) |
-| Source compiles | `meson compile` in `build()` | Semi (build fails if not) |
-| Package installs | `pacman -U` | Semi (install fails if not) |
-| Blur renders correctly | Manual visual inspection | No |
-| Corner radius works | Manual testing with blur-my-shell | No |
-| Refraction visible | Manual testing (liquid glass only) | No |
-| No regressions | Manual comparison with stock shell | No |
-| Patch content correct | `grep` for expected GLSL/property code | Semi (used in Phase 2) |
+```bash
+# Verify overlay contains only refraction-specific code
+grep -c "refract\|r_transition\|r_border\|r_gradient\|specular\|gloss" \
+  patches/liquid_glass_compositor.patch
+# Expected: 25 refraction-specific references
 
-## Coverage
+# Verify zero duplication between base and overlay
+# (overlay context lines should match base-patched code, but no duplicated additions)
+```
 
-- **C code coverage:** Not measured (no test harness for the patched code)
-- **Shader coverage:** Not applicable (GLSL cannot be unit-tested in isolation without a GPU context)
-- **Script coverage:** `install.sh` has no tests; error paths verified manually
+## Upstream Test Suite
 
-## Mocking
+The GNOME Shell source tree includes tests that are **disabled** in the PKGBUILD (`-D tests=false`):
 
-No mocking infrastructure exists. Upstream GNOME Shell uses DBus mock templates at `tests/dbusmock-templates/` for service simulation.
+```
+src/gnome-shell/tests/
+├── data/                    # Test fixtures
+├── dbusmock-templates/      # D-Bus mock templates
+├── shell/                   # Shell integration tests
+├── unit/                    # Unit tests
+├── meson.build              # Test build configuration
+├── gnomeshell_dbusrunner.py # Test runner
+```
+
+These upstream tests are not relevant to the patches (they test GNOME Shell UI behavior, not blur effects).
+
+## Testing Gaps
+
+| Gap | Risk | Mitigation |
+|-----|------|------------|
+| No shader output validation | Shader regressions only caught visually | SDF math is well-understood; changes are small and isolated |
+| No automated build CI | Build breakage only caught manually | Project targets a single GNOME Shell version (50.0) |
+| No multi-GPU testing | Shader may behave differently on AMD vs NVIDIA vs Intel | GLSL used is OpenGL ES 2.0 compatible (basic operations) |
+| No FBO leak testing | Memory leaks in FBO lifecycle not detected | `clear_framebuffer_data()` called in all cleanup paths |
+| No performance benchmarking | Additional FBO pass (mask_fb) adds GPU overhead | Single extra texture sample per fragment is negligible |
+
+## Recommended Future Testing
+
+1. **Screenshot comparison**: Capture framebuffer output at known corner radii, diff against reference images
+2. **Build CI**: GitHub Actions with `makepkg` in an Arch Linux container
+3. **Patch application test**: Verify patches apply cleanly to the target upstream tag
+4. **GObject property roundtrip**: Set and get `corner-radius` and `refraction-strength` via GJS, verify values

@@ -1,55 +1,91 @@
-# External Integrations
+# Integrations — blur-my-glass
 
-> Mapped: 2026-04-26 (refreshed)
+> Last mapped: 2026-04-29
 
 ## Overview
 
-blur-my-glass has minimal external integrations — it's a self-contained patch-and-build project. All integrations are with the GNOME platform and the Arch Linux packaging ecosystem.
+blur-my-glass is a system package that patches GNOME Shell's C source. It has no external API calls, no databases, no auth providers. Its integrations are entirely with the GNOME/Mutter compositor stack and downstream GNOME Shell extensions.
 
-## Upstream Source Repositories
+## Upstream Integration: GNOME Shell 50.0
 
-| Repository | URL | Purpose | Pinned |
-|-----------|-----|---------|--------|
-| GNOME Shell | `https://gitlab.gnome.org/GNOME/gnome-shell.git` | Primary source to patch | Tag `50.0` |
-| libgnome-volume-control | `https://gitlab.gnome.org/GNOME/libgnome-volume-control.git` | Subproject dependency | Commit `664eba4c` |
-| jasmine-gjs | `https://github.com/ptomato/jasmine-gjs.git` | Test framework subproject | Commit `856465dd` |
-| libshew | `https://gitlab.gnome.org/GNOME/libshew.git` | Subproject dependency | Commit `ed782477` |
+### Source Relationship
 
-## Compositor APIs
+The project patches `src/shell-blur-effect.c` and `src/shell-blur-effect.h` from the upstream GNOME Shell repository (`https://gitlab.gnome.org/GNOME/gnome-shell.git`, tag `50.0`).
 
-### Mutter / Cogl Pipeline System
-The patch integrates at the **Cogl pipeline level**, which is Mutter's GPU abstraction:
+**Patched API surface:**
 
-- **`CoglPipeline`** — GPU rendering pipeline objects
-- **`CoglSnippet`** — GLSL shader injection points (`COGL_SNIPPET_HOOK_FRAGMENT`, `COGL_SNIPPET_HOOK_TEXTURE_LOOKUP`)
-- **`CoglFramebuffer`** / **`CoglOffscreen`** — FBO management for multi-pass rendering
-- **`ClutterPaintNode`** — Scene graph paint node tree (layer, blur, blit, pipeline nodes)
-- **`ClutterEffect`** — Base class for `ShellBlurEffect`
+| GObject Property | Type | Range | Added By |
+|-----------------|------|-------|----------|
+| `corner-radius` | `float` | `0.0 → G_MAXFLOAT` | Base patch |
+| `refraction-strength` | `float` | `0.0 → 2.0` | Liquid glass overlay |
 
-### GObject Introspection
-All new properties (`corner-radius`, `refraction-strength`) are exposed via GObject property system, making them accessible from:
-- GJS (JavaScript extension code like blur-my-shell)
-- GSettings bindings
-- DBus introspection
+These properties are exposed via GObject introspection and accessible from JavaScript (GJS) in GNOME Shell extensions.
 
-## Downstream Consumers
+### Cogl Pipeline Integration
 
-| Consumer | Integration Point |
-|----------|------------------|
-| **blur-my-shell** extension | Sets `corner-radius` and optionally `refraction-strength` on `ShellBlurEffect` instances |
-| **GSettings** | Potential schema bindings for runtime control of refraction parameters |
+Both patches inject GLSL shader code via Cogl snippet hooks:
 
-## Package Distribution
+| Hook | Snippet | Purpose |
+|------|---------|---------|
+| `COGL_SNIPPET_HOOK_FRAGMENT` | `mask_glsl` | SDF-based rounded rectangle alpha mask |
+| `COGL_SNIPPET_HOOK_TEXTURE_LOOKUP` | `refraction_replace_glsl` | UV-space refraction with `textureGrad` |
+| `COGL_SNIPPET_HOOK_FRAGMENT` | `brightness_glsl` | Brightness + border highlight + gloss |
 
-| Channel | Format | Details |
-|---------|--------|---------|
-| GitHub | Source | `https://github.com/seeDesign-420/blur-my-glass` |
-| Local | `*.pkg.tar.zst` | Built via `makepkg`, installed with `pacman -U` |
-| AUR (potential) | PKGBUILD | Compatible format, not yet published |
+### FBO Chain
 
-## No External Services
+The patches add a `mask_fb` framebuffer data structure to the existing FBO pipeline:
 
-- No network APIs, databases, or webhooks
-- No CI/CD pipeline (no `.github/workflows/` or equivalent)
-- No telemetry or analytics
-- No authentication providers
+```
+actor_fb → blur_node → brightness_fb → mask_fb → final output
+```
+
+The mask FBO is the terminal stage, applying the SDF-based rounded corner clip to the composited blur+brightness result.
+
+## Downstream Consumer: blur-my-shell Extension
+
+The primary consumer of the added GObject properties is the [blur-my-shell](https://github.com/aunetx/blur-my-shell) GNOME Shell extension. It sets `corner-radius` (and optionally `refraction-strength`) on `Shell.BlurEffect` instances via JavaScript:
+
+```javascript
+// In blur-my-shell extension code
+let effect = new Shell.BlurEffect({
+    mode: Shell.BlurMode.BACKGROUND,
+    radius: 30,
+    brightness: 0.6,
+    'corner-radius': 24.0,           // ← from base patch
+    'refraction-strength': 0.3,       // ← from liquid glass overlay
+});
+```
+
+Without the patched GNOME Shell, these properties don't exist and the extension falls back to sharp-cornered rectangular blur.
+
+## Subproject Dependencies
+
+The GNOME Shell build system uses Meson subprojects, vendored as bare Git repos:
+
+| Subproject | Path | Integration |
+|-----------|------|-------------|
+| `libgnome-volume-control` (gvc) | `libgnome-volume-control/` → symlinked as `gvc` | PulseAudio volume mixer |
+| `jasmine-gjs` | `jasmine-gjs/` | GJS unit test runner |
+| `libshew` | `libshew/` | Shell extension host library for sandboxed prefs |
+
+These are standard GNOME Shell subprojects and are not modified by blur-my-glass patches.
+
+## System Integration
+
+### Package Manager (pacman)
+
+- Installs as `gnome-shell-rounded-blur` with `provides=('gnome-shell')`
+- Conflicts with stock `gnome-shell` and `gnome-shell-debug`
+- Links against `libmutter-18.so` (Mutter 18 ABI)
+- Sets Mutter experimental features via GSettings override:
+  - `scale-monitor-framebuffer`
+  - `variable-refresh-rate`
+  - `xwayland-native-scaling`
+
+### Session Lifecycle
+
+After installation, requires session restart (logout/login or reboot) to activate the patched GNOME Shell binary.
+
+## External Services
+
+**None.** This project has no network calls, no telemetry, no remote APIs. Everything is local compilation and system package management.

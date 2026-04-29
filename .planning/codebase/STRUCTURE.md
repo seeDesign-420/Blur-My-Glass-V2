@@ -1,96 +1,116 @@
-# Directory Structure
+# Structure — blur-my-glass
 
-> Mapped: 2026-04-26 (refreshed — reflects Phase 1+2 changes)
+> Last mapped: 2026-04-29
 
-## Project Root
+## Top-Level Directory Layout
 
 ```
 blur-my-glass-live/
 ├── .git/                          # Git repository
-├── .gitignore                     # Excludes build artifacts, src/, pkg/
-├── .scratch/                      # Development scratch space
-│   ├── patchwork/                 #   Patch development workspace
-│   └── upstream_test/             #   Upstream testing workspace
-├── PKGBUILD                       # ★ Arch Linux package build recipe
-├── README.md                      # Project documentation
-├── install.sh                     # ★ User-facing installer script
-├── patches/                       # ★ CORE DELIVERABLE (stacked)
-│   ├── rounded_corners_mask.patch #   Base: AA SDF rounded corners (313 lines)
-│   └── liquid_glass_compositor.patch # Overlay: refraction + lighting (253 lines)
-│
-├── gnome-shell/                   # [gitignored] Bare git clone of upstream
-├── libgnome-volume-control/       # [gitignored] Subproject source
-├── jasmine-gjs/                   # [gitignored] Subproject source
-├── libshew/                       # [gitignored] Subproject source
-│
-├── src/                           # [gitignored] makepkg source directory
-│   ├── gnome-shell/               #   Full GNOME Shell source tree (post-patch)
-│   │   ├── meson.build            #   Root build definition (367 lines)
-│   │   ├── src/                   #   C source files
-│   │   │   ├── shell-blur-effect.c  # ★ Primary patch target (39KB patched)
-│   │   │   ├── shell-blur-effect.h  # ★ Header with new API declarations
-│   │   │   ├── shell-global.c       #   Global singleton
-│   │   │   ├── shell-glsl-effect.c  #   GLSL effect base class
-│   │   │   └── ... (77 more files)
-│   │   ├── js/                    #   GNOME Shell JavaScript
-│   │   │   ├── ui/                #   Shell UI modules
-│   │   │   ├── misc/              #   Utility modules
-│   │   │   └── gdm/               #   Login manager integration
-│   │   ├── data/                  #   GSettings schemas, desktop files
-│   │   ├── tests/                 #   Shell tests (jasmine-gjs based)
-│   │   └── docs/                  #   API documentation sources
-│   └── build/                     #   Meson build output
-│       ├── build.ninja            #   Generated ninja build file
-│       ├── compile_commands.json  #   Compilation database (270KB)
-│       └── config.h               #   Generated configuration header
-│
-├── pkg/                           # [gitignored] makepkg packaging output
-│   ├── gnome-shell-rounded-blur/
-│   └── gnome-shell-rounded-blur-docs/
-│
-├── *.pkg.tar.zst                  # [gitignored] Built package archives
-└── .planning/                     # GSD planning documents
-    ├── PROJECT.md                 #   Project definition
-    ├── REQUIREMENTS.md            #   Formal requirements
-    ├── ROADMAP.md                 #   Phase roadmap
-    ├── STATE.md                   #   Current execution state
-    ├── codebase/                  #   This codebase map (7 documents)
-    └── phases/                    #   Phase execution artifacts
-        ├── 01-sdf-anti-aliasing/
-        └── 02-stacked-patch-architecture/
+├── .gitignore                     # Excludes build artifacts, source checkouts
+├── .planning/                     # GSD planning documents
+├── .scratch/                      # Scratch files (patchwork, upstream_test)
+├── PKGBUILD                       # Arch Linux package build script (167 LOC)
+├── README.md                      # Project documentation (90 LOC)
+├── install.sh                     # User-facing installer (123 LOC)
+├── patches/                       # ★ Core deliverables — the patches
+│   ├── rounded_corners_mask.patch     # Base patch (314 LOC)
+│   ├── liquid_glass_compositor.patch  # Overlay patch (250 LOC)
+│   └── liquid_glass_compositor.patch.tmp  # WIP/backup of overlay patch
+├── gnome-shell/                   # Bare git repo (GNOME Shell source)
+├── jasmine-gjs/                   # Bare git repo (GJS test framework)
+├── libgnome-volume-control/       # Bare git repo (volume control)
+├── libshew/                       # Bare git repo (extensions host lib)
+├── src/                           # makepkg working tree (gitignored)
+│   ├── gnome-shell/               # Checked-out + patched GNOME Shell source
+│   │   ├── src/                   # C source files
+│   │   │   ├── shell-blur-effect.c    # ★ Primary patched file (1211 LOC)
+│   │   │   └── shell-blur-effect.h    # ★ Primary patched header (65 LOC)
+│   │   ├── js/ui/                 # GNOME Shell JavaScript UI
+│   │   ├── data/                  # GSettings schemas, DBus interfaces
+│   │   ├── tests/                 # Upstream test suite
+│   │   ├── meson.build            # Build configuration
+│   │   └── ...
+│   └── build/                     # Meson build output
+├── pkg/                           # makepkg staging (gitignored)
+└── *.pkg.tar.zst                  # Built packages (gitignored)
 ```
 
 ## Key Locations
 
-### Tracked Files (3 core files + 2 patches = 5 files total)
+### Owned Source Files (Tracked)
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `PKGBUILD` | ~165 | Package build recipe — sources, deps, stacked prepare/build/package |
-| `install.sh` | ~121 | User-facing installer with arg parsing, preflight checks, dependency install |
-| `README.md` | ~90 | Project documentation |
-| `patches/rounded_corners_mask.patch` | 313 | Base patch: AA SDF corner radius mask (always applied) |
-| `patches/liquid_glass_compositor.patch` | 253 | Overlay patch: refraction + specular + lighting (opt-in) |
+| File | Purpose | LOC |
+|------|---------|-----|
+| `patches/rounded_corners_mask.patch` | Base patch: SDF mask + corner-radius property | 314 |
+| `patches/liquid_glass_compositor.patch` | Overlay: refraction + specular + lighting | 250 |
+| `PKGBUILD` | Arch package definition, patch application, build config | 167 |
+| `install.sh` | User-facing build orchestration with error handling | 123 |
+| `README.md` | Project documentation | 90 |
+| `.gitignore` | Excludes build artifacts and source checkouts | 19 |
 
-### Primary Patch Target
+**Total owned code: ~963 LOC** (patches + scripts + docs)
 
-| File | Description |
-|------|-------------|
-| `src/gnome-shell/src/shell-blur-effect.c` | Multi-pass blur effect implementation — FBO management, GLSL snippets, GObject properties |
-| `src/gnome-shell/src/shell-blur-effect.h` | Public API header — getter/setter declarations for new properties |
+### Patched Files (In Build Tree)
+
+| File | Original LOC | Patched LOC | Delta |
+|------|-------------|-------------|-------|
+| `src/gnome-shell/src/shell-blur-effect.c` | ~900 | 1211 | +311 |
+| `src/gnome-shell/src/shell-blur-effect.h` | ~57 | 65 | +8 |
+
+### Planning Documents
+
+```
+.planning/
+├── PROJECT.md                     # Project definition and milestone
+├── REQUIREMENTS.md                # Traceable requirements (SDF, PATCH, VFY)
+├── ROADMAP.md                     # 5-phase roadmap for v1.0
+├── STATE.md                       # Current progress (Phase 2 complete)
+├── codebase/                      # This codebase map
+├── debug/                         # Debug notes
+│   ├── blur-refraction-not-rendering.md
+│   └── boxpointer-no-blur.md
+└── phases/                        # Phase-specific plans and research
+    ├── 01-fix-sdf-anti-aliasing/
+    ├── 02-stacked-patch-architecture/
+    ├── 03-actor-coverage-audit/
+    └── 04-boxpointer-blur/
+```
+
+### Scratch Area
+
+```
+.scratch/
+├── patchwork/                     # Patch development workspace
+└── upstream_test/                 # Testing against upstream source
+```
 
 ## Naming Conventions
 
-- **Patch files:** `snake_case.patch` — base is always applied, overlay is opt-in via `BLUR_PATCH` env var
-- **C files:** `shell-{feature}.c` / `.h` (GNOME Shell convention, kebab-case)
-- **Package name:** `gnome-shell-rounded-blur` (hyphenated)
-- **GObject properties:** kebab-case (`corner-radius`, `refraction-strength`)
-- **GLSL uniforms:** `u_` prefix (`u_corner_radius`, `u_size`, `u_refract_size`)
+### Files
 
-## File Ownership
+- Patches: `snake_case.patch` matching the feature name
+- Build files: Standard Arch Linux naming (`PKGBUILD`, uppercase)
+- Planning: `UPPER_CASE.md` for codebase docs, `NN-kebab-case/` for phase dirs
 
-| Owner | Files |
-|-------|-------|
-| **This project** | `PKGBUILD`, `install.sh`, `README.md`, `patches/*`, `.gitignore` |
-| **Upstream GNOME** | Everything under `src/gnome-shell/` (cloned at build time) |
-| **makepkg** | `src/`, `pkg/`, `*.pkg.tar.zst`, `gnome-shell/`, subproject dirs |
+### Code (In Patches)
+
+- C identifiers: `snake_case` following GNOME/GLib conventions
+- GLSL uniforms: `u_` prefix (`u_corner_radius`, `u_size`, `u_refract_size`)
+- GLSL locals (refraction): `r_` prefix (`r_transition`, `r_border`, `r_gradient`)
+- GObject properties: `kebab-case` (`corner-radius`, `refraction-strength`)
+- GObject enum values: `UPPER_SNAKE_CASE` with prefix (`PROP_CORNER_RADIUS`)
+
+## Gitignore Strategy
+
+Everything generated by `makepkg` is gitignored:
+- `src/` — checked-out and patched source trees
+- `pkg/` — package staging directory
+- `build/` — meson/ninja build output
+- `*.pkg.tar*` — built packages
+- `*.log` — build logs
+- Source checkout directories (`gnome-shell/`, `libgnome-volume-control/`, etc.)
+- `gvc` — symlink created during `prepare()`
+- `.SRCINFO` — AUR metadata
+
+Only the patches, build scripts, and documentation are tracked in Git.
