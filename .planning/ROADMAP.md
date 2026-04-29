@@ -98,3 +98,28 @@
 1. Rounded corners are visually smooth at radii 0, 12, 24, 48 px
 2. Liquid glass refraction and specular effects render identically to current behavior
 3. `./install.sh` and `./install.sh --liquid-glass` both complete successfully
+
+---
+
+## Phase 6: Dhruva Dock Integration
+
+**Goal:** Implement blur/glass effect support for the [Dhruva](https://github.com/NarkAgni/dhruva) dock extension — applying frosted glass blur to the dock background panel and its glassmorphism context menus, leveraging the `corner-radius` and `refraction-strength` properties from blur-my-glass.
+
+**Depends on:** Phase 4, Phase 5
+
+**Requirements:** (new — integration-driven)
+
+**Changes:**
+- Research Dhruva's Clutter actor hierarchy (dock panel, context menu, floating handle)
+- Blur component or monkey-patch for Dhruva's dock background `St.Widget`
+- Blur integration for Dhruva's glassmorphism context menu (likely `BoxPointer`-based, may reuse Phase 4 component)
+- GSettings schema entries for Dhruva-specific blur settings (sigma, brightness, corner-radius)
+- Preferences page for Dhruva dock blur configuration
+
+**Success criteria:**
+1. Dhruva dock background renders with frosted glass blur behind it
+2. Dhruva context menus (right-click, Aero Peek) render with blur
+3. Blur respects Dhruva's floating mode (position/size changes)
+4. Works with both base patch (rounded corners) and liquid glass overlay
+5. Clean enable/disable lifecycle — no interference with Dhruva's own animations
+6. Preferences exposed in blur-my-shell settings under a "Dhruva Dock" section

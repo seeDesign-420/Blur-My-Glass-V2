@@ -21,3 +21,9 @@ Last activity: 2026-04-24 — All tasks executed and verified
 - Zero base patch code in overlay additions (7 context lines are correct)
 - PKGBUILD always applies base, conditionally stacks overlay
 - Net change: +188 / -1605 lines
+
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 6 added: Dhruva dock integration — blur/glass effects for the Dhruva dock extension
