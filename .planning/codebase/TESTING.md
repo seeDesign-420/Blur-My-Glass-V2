@@ -1,74 +1,84 @@
 # Testing
 
-*Last mapped: 2026-04-29*
+*Mapped: 2026-05-03*
 
-## Test Infrastructure
+## Current Test Infrastructure
 
-### Upstream GNOME Shell Tests
-The upstream GNOME Shell source (at `src/gnome-shell/tests/`) includes a unit test suite:
-- **Framework:** jasmine-gjs (pinned at commit `856465dd`)
-- **Runner:** `gnome-shell-dbus-runner.py` — DBus test harness
-- **Unit tests:** `tests/unit/*.js` — jsParse, params, versionCompare, url, insertSorted, markup, highlighter, extensionUtils, signalTracker, etc.
-- **Fixtures:** `tests/unit/fixtures/extensions/` — invalid/valid extension metadata for validation tests
-- **Build config:** `meson_options` has `-D tests=false` — **upstream tests are disabled** in the PKGBUILD
+### Formal Testing
 
-### Project-Level Testing
-**There is no project-specific test suite.** The project relies on:
-1. Build verification (patch applies + compiles)
-2. Manual visual verification (log in and observe blur effects)
-3. GNOME Shell journal logs (`journalctl -f /usr/bin/gnome-shell`)
+**No formal test framework is configured for project-level code.**
 
-## Verification Approach
+The project includes `jasmine-gjs/` as a git subproject (used by GNOME Shell's own test suite via Meson), but:
+- The PKGBUILD explicitly disables tests: `-D tests=false`
+- No project-specific unit tests exist
+- No CI/CD pipeline is configured
+- No linting or static analysis is configured for the JS component
 
-### Build Verification
-```bash
-# Default build (base patch only)
-makepkg -si
+### Manual Verification (primary method)
 
-# Liquid glass build (base + overlay)
-BLUR_PATCH=liquid_glass_compositor makepkg -si
+All verification is manual and visual:
 
-# Clean rebuild
-./install.sh --clean
-./install.sh --clean --liquid-glass
-```
-**Success criteria:** No compilation errors or warnings. Package installs without conflict.
+1. **Build verification**: `makepkg -si` completes without errors
+2. **Visual verification**: Log out/in → observe blur effects render correctly
+3. **Regression testing**: Compare before/after screenshots for SDF aliasing, refraction
+4. **Deploy cycle**: `./deploy-dhruva.sh` → restart GNOME Shell → visual check
 
-### Visual Verification (Manual)
-| Check | How |
-|-------|-----|
-| Rounded corners AA | Set `corner-radius` to 24px, inspect edges at 2× zoom — should be smooth, no stairstepping |
-| Liquid glass refraction | Enable overlay, open Quick Settings — background should warp with zoom-lens effect |
-| BoxPointer blur | Right-click desktop or open Quick Settings — popup should have blur behind content |
-| Dhruva dock blur | Hover dock — blur should follow background panel size/position |
-| Enable/disable cycle | Toggle extension on/off via `gnome-extensions enable/disable blur-my-shell@aunetx` — no errors in journal |
+### Debug Tooling
 
-### Debug Logging
-```javascript
-// All components use guarded logging
-if (this.settings.DEBUG)
-    console.log(`[Blur my Shell > component]    ${str}`);
-```
-Enable via blur-my-shell preferences → Debug toggle. Observe via:
-```bash
-journalctl -f /usr/bin/gnome-shell | grep "Blur my Shell"
-```
+| Tool | Usage |
+|------|-------|
+| `settings.DEBUG` flag | Enables `_log()` console output for all blur-my-shell components |
+| GNOME Shell journal | `journalctl /usr/bin/gnome-shell -f` for runtime errors |
+| Looking Glass | GNOME Shell's built-in JS debugger (Alt+F2 → `lg`) |
+| Screencast recording | Video captures stored in project root for issue documentation |
+
+## Verification History
+
+### Phase 1: SDF Anti-Aliasing Fix
+
+| Check | Method | Result |
+|-------|--------|--------|
+| `dist` includes interior SDF term | Code review | ✅ `min(max(q.x, q.y), 0.0)` present |
+| `smoothstep` replaces `step` | Code review | ✅ `smoothstep(aa, -aa, dist)` |
+| Patch applies cleanly | `patch -p1 --dry-run` | ✅ |
+
+### Phase 2: Stacked Patch Architecture
+
+| Check | Method | Result |
+|-------|--------|--------|
+| Overlay contains no base code | `grep` for mask code | ✅ 0 base references in overlay |
+| Base applies independently | `makepkg` (default) | ✅ |
+| Overlay applies on top | `BLUR_PATCH=liquid_glass_compositor makepkg` | ✅ |
+| Net change ≤ original | Line count | ✅ +188 / -1605 |
+
+### Phase 6: Dhruva Dock Integration
+
+| Check | Method | Result |
+|-------|--------|--------|
+| `DhruvaBlur` class structure | Code review | ✅ enable/disable lifecycle |
+| Signal cleanup on disable | Code review | ✅ manual ids + connections.disconnect_all |
+| Context menu blur injection | Code review | ✅ allocation wait + idle fallback |
+| Extension.js integration | Code review | ✅ registered in enable/disable/settings |
 
 ## Testing Gaps
 
-| Gap | Impact | Severity |
-|-----|--------|----------|
-| No automated tests for patch correctness | Shader regressions only caught visually | High |
-| No CI pipeline | Build breaks discovered during manual builds | Medium |
-| No screenshot comparison tests | Visual regressions hard to track | Medium |
-| Upstream tests disabled | Can't verify patch doesn't break upstream behavior | Low |
-| No GSettings schema validation tests | Typos in key names cause silent failures | Medium |
-| No multi-monitor test rig | Blur geometry bugs on multi-monitor setups | Medium |
+### Critical gaps
 
-## Recommended Test Strategy
+1. **No automated shader validation** — SDF mask and refraction GLSL cannot be unit tested without a GPU context. Validation is purely visual.
+2. **No integration tests** — Dhruva dock discovery, signal wiring, and blur lifecycle are untested programmatically.
+3. **No regression tests for patches** — New upstream GNOME Shell releases may break patch application (hunk offsets, context changes).
 
-1. **Patch validation:** Script that applies patch to fresh upstream source and compiles
-2. **GSettings schema compilation:** `glib-compile-schemas --strict` against modified schemas
-3. **Screenshot regression:** Capture blur regions before/after changes using `gnome-screenshot`
-4. **Extension load test:** `gnome-extensions enable` + journal grep for errors
-5. **Geometry smoke test:** Open/close BoxPointer and Dhruva dock, verify no allocation warnings
+### Lower-priority gaps
+
+4. **No GSettings schema validation** — Dhruva schema keys are assumed to match what `DummyPipeline` expects.
+5. **No performance benchmarks** — `sync_geometry()` fires on every property notify (9 properties × 2 actors = 18 potential calls per frame). No profiling data exists.
+6. **No memory leak detection** — `EffectsManager` is designed to prevent RAM bleeding, but no tooling verifies this over long sessions.
+
+## Recommended Testing Approach
+
+Given the GNOME Shell extension context, practical testing would include:
+
+1. **Patch application CI** — Clone upstream tag, apply patches, verify `meson setup` succeeds
+2. **Schema validation** — Parse schema XML and verify all keys referenced in JS exist
+3. **GJS lint** — `eslint` with GJS-compatible config for basic static analysis
+4. **Deploy-test script** — Automated `deploy-dhruva.sh` + `busctl` to trigger extension reload + `journalctl` error check

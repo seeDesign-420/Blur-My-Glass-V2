@@ -1,104 +1,151 @@
 # Technical Concerns
 
-*Last mapped: 2026-04-29*
+*Mapped: 2026-05-03*
 
-## Active Issues
+## Critical Concerns
 
-### 🔴 P0 — Dhruva Dock Blur Does Not Track Hover Resize
+### 1. Upstream GNOME Shell Version Lock
 
-**Files:** `components/dhruva.js` → `_update_blur_geometry()`, `_blur_dock()`
+**Risk: HIGH** — The entire project is pinned to GNOME Shell 50.0.
 
-**Problem:** When hovering the Dhruva dock, the dock animates wider (magnification effect via scaling or width change), but the blur background widget stays at its original size. The blur region does not extend to match the animated dock width.
+- Patches target specific line numbers in `shell-blur-effect.c`
+- GNOME 51 will likely change hunk offsets, breaking patch application
+- No automated detection of upstream changes
+- Workaround: Manual patch refresh each GNOME release
 
-**Root Cause (suspected):** The blur widget geometry is synced via `notify::x`, `notify::y`, `notify::width`, `notify::height`, and `notify::allocation` signals on `bgActor`. However, Dhruva's hover animation may use:
-1. **CSS transitions** (easing) that don't emit property notifications during animation frames
-2. **`set_scale()`** on the container rather than resizing `DhruvaBackground` directly
-3. **Implicit Clutter animations** that update the visual transform but not the allocation box
+**Files affected**: `patches/rounded_corners_mask.patch`, `patches/liquid_glass_compositor.patch`, `PKGBUILD` (source tag)
 
-The `notify::scale-x`/`notify::scale-y` signals are connected on the *container*, but the `_update_blur_geometry()` method reads `bgActor.get_allocation_box()`, which returns the layout allocation — not the visually scaled size.
+### 2. Extension Load Order Race
 
-**Impact:** Visual mismatch between dock size and blur region during hover interaction.
+**Risk: MEDIUM** — Dhruva dock may not exist when blur-my-shell enables.
 
-**Potential fixes:**
-- Read container's `scale_x`/`scale_y` and multiply blur dimensions accordingly
-- Use `get_transformed_size()` instead of `get_allocation_box()` for visual footprint
-- Connect to Dhruva's animation timeline if exposed
-- Poll geometry using `Clutter.Timeline` during animation
+The `DhruvaBlur` component works around this with 4 delayed re-scans:
+```javascript
+// dhruva.js line 70-77
+for (let delay of [500, 2000, 5000, 10000]) {
+    let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
+        this._scan_for_docks();
+        return GLib.SOURCE_REMOVE;
+    });
+}
+```
 
----
+This is a **polling workaround** — not event-driven. If Dhruva enables after 10 seconds, blur won't attach until the next `child-added` event.
 
-### 🟡 P1 — Stale Patch Temp File
+### 3. Geometry Sync Signal Storm
 
-**Files:** `patches/liquid_glass_compositor.patch.tmp`
+**Risk: MEDIUM** — `sync_geometry()` connects to 18 signals (9 on `bgActor` + 9 on `container`).
 
-**Problem:** A `.tmp` variant of the liquid glass overlay patch exists alongside the production file. This can cause confusion about which is the source of truth.
+During Dhruva's magnification animation, multiple property notifications fire per frame:
+- `scale-x`, `scale-y`, `translation-x`, `translation-y` all change simultaneously
+- Each triggers a separate `sync_geometry()` call
+- Each call does `get_transformed_position()` + `transform_stage_point()` + `set_position()` + `set_size()` + `queue_repaint()`
 
-**Fix:** Delete `patches/liquid_glass_compositor.patch.tmp` or rename if it contains WIP changes.
+**No batching or debouncing is implemented.** In practice this works because Clutter coalesces repaints, but CPU overhead from redundant geometry calculations is unknown.
 
----
+### 4. Settings Changes Trigger Full Rebuild
 
-### 🟡 P1 — DummyPipeline Settings Connection Leak Potential
+**Risk: LOW** — Dhruva settings changes (sigma, brightness, corner-radius) cause:
+```javascript
+// extension.js lines 684-705
+this._dhruva_blur.disable();
+this._dhruva_blur.enable();
+```
 
-**Files:** `conveniences/dummy_pipeline.js` lines 80–103
+This destroys and recreates all blur widgets, causing a brief visual flash. BoxPointer and other components handle this more granularly via `DummyPipeline`'s direct settings binding. The `DummyPipeline` already connects to `changed::sigma` etc. internally (lines 80-103 of `dummy_pipeline.js`), so the disable/re-enable in `extension.js` is **redundant** and could be removed.
 
-**Problem:** `build_effect()` connects to `this.settings.settings` (the raw GSettings object) using `connect()` but stores IDs as instance properties. If `build_effect()` is called multiple times without first calling `remove_effect()`, the previous signal connections leak — they're overwritten but never disconnected.
+## Fragile Areas
 
-**Current risk:** Low — `build_effect()` is only called once in the constructor flow currently. But the code structure allows re-calling it, which would leak.
+### 5. Context Menu Actor Discovery (Heuristic)
 
-**Fix:** Call `remove_effect()` at the top of `build_effect()`, or guard against double-connect.
+**Risk: MEDIUM** — `_blur_context_menu()` uses fragile heuristics to find menu structure:
 
----
+```javascript
+// dhruva.js lines 356-367
+let gc = child.get_children();
+if (gc && gc.length >= 2) {
+    menuContainer = child;
+    for (let sub of gc) {
+        if (sub.constructor.name === 'DrawingArea' || ...)
+            bgDrawingArea = sub;
+        else if (sub.constructor.name === 'BoxLayout')
+            panel = sub;
+    }
+}
+```
 
-### 🟡 P1 — BoxPointer Blur Monkey-Patch Fragility
+This checks `constructor.name` and `get_name()` patterns, which are not stable APIs. If Dhruva changes its context menu structure, blur injection will silently fail.
 
-**Files:** `components/boxpointer.js` lines 36–69
+### 6. Manual Signal Tracking in DhruvaBlur
 
-**Problem:** The component monkey-patches `BoxPointerModule.BoxPointer.prototype.open` and `.close`. If GNOME Shell changes the `BoxPointer` class to use a different method signature, or if another extension also patches these methods, the blur injection breaks silently.
+The `_blur_dock()` method manually tracks signal IDs in an array:
+```javascript
+let signal_ids = [];
+signal_ids.push([bgActor, bgActor.connect(prop, sync_geometry)]);
+```
 
-**Mitigation in place:** Original methods are saved and restored on `disable()`. But no version check or compatibility guard exists.
+This is separate from the `Connections` wrapper used for global signals. If a signal is missed during cleanup, it becomes a dangling reference that can crash the shell on next property change.
 
----
+The `BoxPointerBlur` component avoids this by using `this.connections.disconnect_all_for(actor)` — a safer pattern.
 
-### 🟡 P2 — No GSettings Schema for Dhruva Component
+### 7. No Schema Validation
 
-**Problem:** The `DhruvaBlur` component reads settings from `this.settings.dhruva` (SIGMA, BRIGHTNESS, CORNER_RADIUS, REFRACTION_STRENGTH, etc.) and the extension.js wires up `_settings.dhruva.*_changed()` callbacks. However, the GSettings schema XML for these keys may not be compiled into the running extension's schema cache.
-
-**Impact:** If the schema keys don't exist, the extension will fail silently or throw on first access.
-
-**Status:** Need to verify `org.gnome.shell.extensions.blur-my-shell.gschema.xml` includes `dhruva` child schema with all expected keys.
-
----
-
-### 🟢 P3 — Delayed Dock Scan Timers
-
-**Files:** `components/dhruva.js` lines 68–75
-
-**Observation:** Four `GLib.timeout_add()` timers at 500ms, 2s, 5s, 10s handle extension load-order races. These are correctly cleaned up in `disable()`. The pattern is pragmatic but adds unnecessary re-scans if Dhruva is already discovered on the first scan.
-
-**Improvement:** Cancel remaining timers once a dock is found.
-
----
-
-### 🟢 P3 — No Multi-Monitor Testing for Dhruva Dock Blur
-
-**Problem:** `_blur_dock()` uses `DummyPipeline.create_background_with_effect()` which creates a dynamic blur widget. The blur samples from the screen behind the widget. On multi-monitor setups, the blur widget may sample the wrong monitor's content if the dock is on a non-primary monitor.
-
-**Status:** Not verified. The BoxPointer component handles this with `Main.layoutManager.findMonitorForActor()`, but DhruvaBlur does not do per-monitor aware background creation.
-
----
+The deployed `dhruva.js` assumes GSettings schema keys (`sigma`, `brightness`, `corner-radius`, etc.) exist under the `dhruva` path. If the schema XML is missing or outdated, the extension will throw at enable time. The `apply-dhruva-fix.sh` script runs `glib-compile-schemas` but doesn't verify the XML contains dhruva keys.
 
 ## Technical Debt
 
-| Item | Severity | Location | Description |
-|------|----------|----------|-------------|
-| Upstream tests disabled | Low | `PKGBUILD` line 117 | `-D tests=false` skips all upstream unit tests |
-| No CI pipeline | Medium | Project-wide | Build verification is manual only |
-| `.tmp` patch file | Low | `patches/` | Stale WIP file should be cleaned up |
-| No screenshot regression tests | Medium | Project-wide | Visual changes tracked only by human inspection |
-| Hard-coded GNOME Shell version | Low | `PKGBUILD` line 12 | `pkgver=50.0` must be manually updated for new releases |
+### 8. Dual Deployment Model
+
+`dhruva.js` exists in two locations:
+1. `blur-my-glass-live/dhruva.js` — source of truth in this repo
+2. `~/.local/share/gnome-shell/extensions/blur-my-shell@aunetx/components/dhruva.js` — deployed copy
+
+There's no version tracking between them. Two scripts (`deploy-dhruva.sh`, `apply-dhruva-fix.sh`) do essentially the same thing with minor differences (schema compilation). This should be a single script.
+
+### 9. Orphaned patch.tmp File
+
+`patches/liquid_glass_compositor.patch.tmp` (12 KB) appears to be a scratch/backup file that was never cleaned up. It adds 146 bytes over the actual patch and may contain stale content.
+
+### 10. No Preferences UI for Dhruva
+
+The `extension.js` settings section wires up Dhruva blur/sigma/brightness/corner-radius changes, but there is no Adw.PreferencesPage for the Dhruva component. Users must modify GSettings directly via `dconf-editor` or `gsettings` CLI.
+
+### 11. Screencast in Source Tree
+
+`Screencast From 2026-04-29 13-02-09.mp4` (631 KB) is committed to the repo but not gitignored. Debug screencasts should be in `.scratch/` or excluded.
 
 ## Security Considerations
 
-- **System package replacement** — The PKGBUILD replaces the system `gnome-shell` package. A corrupted patch could break the login session entirely.
-- **No integrity verification** — The patches themselves are not checksummed independently. Only the upstream source has `b2sums` verification.
-- **Extension runs with shell privileges** — blur-my-shell components execute in the GNOME Shell process with full compositor access.
+### 12. System Package Replacement
+
+`gnome-shell-rounded-blur` `provides` and `conflicts` with `gnome-shell`. Installing this package replaces a core system component. If the patch introduces a crash-triggering bug, the entire desktop session is compromised.
+
+**Mitigation**: Revert via `sudo pacman -S gnome-shell` restores stock.
+
+### 13. No Code Signing
+
+The PKGBUILD verifies source integrity via `b2sums` but the patch files themselves are not signed. A supply-chain attack could modify patches to inject code into the compositor (running as the user's session with full desktop access).
+
+## Performance Considerations
+
+### 14. Additional FBO Pass
+
+The base patch adds one extra framebuffer object (`mask_fb`) to every blur effect render. This means every blurred actor (panel, overview, dock, popup menus) now does:
+
+```
+actor → blur → brightness → mask → screen  (was: actor → blur → brightness → screen)
+```
+
+The additional FBO copy + SDF calculation adds GPU cost per frame per blurred actor. For the mask pass with `corner_radius = 0`, the SDF evaluates to `1.0` everywhere, so the pass could theoretically be skipped but isn't.
+
+### 15. Dhruva Magnifier Queue Repaint
+
+Every `sync_geometry()` call explicitly invokes `pipeline.effect.queue_repaint()`:
+
+```javascript
+if (pipeline && pipeline.effect) {
+    pipeline.effect.queue_repaint();
+}
+```
+
+During magnification animations (hover over dock icons), this fires continuously. The repaint is necessary because the blur region changes, but combined with the signal storm (Concern #3), this may cause excessive GPU work.

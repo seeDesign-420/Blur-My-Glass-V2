@@ -1,84 +1,124 @@
-# Integrations
+# External Integrations
 
-*Last mapped: 2026-04-29*
+*Mapped: 2026-05-03*
 
-## Upstream GNOME Shell (Source-Level)
+## Upstream GNOME Shell (C-level integration)
 
-The primary integration is a **source-level patch** applied to upstream GNOME Shell 50.0 at build time.
+The core integration is a **source-level patch** applied to GNOME Shell's compositor code before compilation.
 
-### Patched Files
-| File | Patch | What Changes |
-|------|-------|-------------|
-| `src/shell-blur-effect.c` | `rounded_corners_mask.patch` | Adds `corner-radius` GObject property, SDF mask FBO pass, GLSL `smoothstep`+`fwidth` anti-aliasing |
-| `src/shell-blur-effect.h` | `rounded_corners_mask.patch` | Exposes `get/set_corner_radius()` API |
-| `src/shell-blur-effect.c` | `liquid_glass_compositor.patch` | Adds `refraction-strength` property, `COGL_SNIPPET_HOOK_TEXTURE_LOOKUP` refraction shader, specular/border/gradient highlights |
-| `src/shell-blur-effect.h` | `liquid_glass_compositor.patch` | Exposes `get/set_refraction_strength()` API |
+### Patched APIs
 
-### Stacked Patch Architecture
+| File | Property Added | Type | Range | Purpose |
+|------|---------------|------|-------|---------|
+| `src/shell-blur-effect.c` | `corner-radius` | `float` | `0.0 – G_MAXFLOAT` | SDF-based anti-aliased rounded corners mask |
+| `src/shell-blur-effect.c` | `refraction-strength` | `float` | `0.0 – 2.0` | Zoom-lens refraction warp (liquid glass overlay only) |
+
+### Cogl Pipeline Hooks
+
+| Hook | Snippet Type | Purpose |
+|------|-------------|---------|
+| `COGL_SNIPPET_HOOK_FRAGMENT` | `mask_glsl` | AA rounded-rect SDF mask (`smoothstep` + `fwidth`) |
+| `COGL_SNIPPET_HOOK_TEXTURE_LOOKUP` | `refraction_replace_glsl` | UV-warp refraction with `textureGrad` (liquid glass only) |
+| `COGL_SNIPPET_HOOK_FRAGMENT` | `brightness_glsl` (modified) | Border highlight + vertical gradient gloss (liquid glass only) |
+
+### FBO Pipeline
+
+The base patch adds a third framebuffer (`mask_fb`) to the existing blur pipeline:
+
 ```
-Upstream GNOME Shell 50.0
-  └── rounded_corners_mask.patch  (always applied)
-        └── liquid_glass_compositor.patch  (conditionally applied)
+actor_fb → blur → brightness_fb → mask_fb (final output)
 ```
-The base patch is self-contained. The overlay depends on the base's `mask_fb` FBO and `corner-radius` infrastructure.
 
-## Mutter / Cogl GPU Pipeline
+The liquid glass overlay modifies `brightness_fb`'s pipeline to include refraction + specular before the mask pass.
 
-### GObject Properties Exposed
-| Property | Type | Range | Patch |
-|----------|------|-------|-------|
-| `corner-radius` | float | 0..MAXFLOAT | Base |
-| `refraction-strength` | float | 0..2.0 | Overlay |
+## blur-my-shell Extension (JS-level integration)
 
-### Cogl Snippet Hooks Used
-- `COGL_SNIPPET_HOOK_FRAGMENT` — SDF mask shader (base patch)
-- `COGL_SNIPPET_HOOK_TEXTURE_LOOKUP` — Refraction shader with `textureGrad` (overlay patch)
+### Component Registration
 
-### FBO Render Passes (paint order)
-1. **actor_fb** — Captures the actor content
-2. **background_fb** — Captures the screen behind the actor
-3. **brightness_fb** — Applies brightness + refraction texture lookup (overlay)
-4. **mask_fb** — Applies SDF rounded corners mask (base)
+`dhruva.js` is registered as a first-class blur-my-shell component in `extension.js`:
 
-## blur-my-shell Extension (Consumer)
+```javascript
+// extension.js line 25, 78
+import { DhruvaBlur } from './components/dhruva.js';
+this._dhruva_blur = new DhruvaBlur(...init());
+```
 
-The GNOME Shell extension at `~/.local/share/gnome-shell/extensions/blur-my-shell@aunetx/` consumes the patched `Shell.BlurEffect` via GObject property access.
+### Settings Integration
 
-### Component → Patch Property Mapping
-| Component | `corner-radius` | `refraction-strength` |
-|-----------|------------------|-----------------------|
-| BoxPointer (`components/boxpointer.js`) | ✅ | ✅ (via DummyPipeline) |
-| Dhruva (`components/dhruva.js`) | ✅ | ✅ (via DummyPipeline) |
-| Panel, Overview, Dash, etc. | ✅ (upstream blur-my-shell) | ✅ (upstream blur-my-shell) |
+The Dhruva component binds to the `dhruva` subsection of blur-my-shell's GSettings schema:
 
-### DummyPipeline Integration (`conveniences/dummy_pipeline.js`)
-- Creates `St.Widget` with `NativeDynamicBlurEffect` (subclass of `Shell.BlurEffect`)
-- Sets `corner-radius`, `refraction-strength` via GObject properties
-- Falls back gracefully if patched properties don't exist (try/catch)
-- Connects to GSettings `changed::*` signals for live updates
+| Setting | GSettings Key | Effect |
+|---------|--------------|--------|
+| `BLUR` | `blur` | Master toggle for Dhruva dock blur |
+| `SIGMA` | `sigma` | Gaussian blur radius (mapped to `unscaled_radius = 2 * SIGMA`) |
+| `BRIGHTNESS` | `brightness` | Brightness multiplier on blurred content |
+| `CORNER_RADIUS` | `corner-radius` | SDF corner radius for the blur mask |
+| `REFRACTION_STRENGTH` | `refraction-strength` | Refraction warp intensity (liquid glass only) |
 
-### NativeDynamicBlurEffect (`effects/native_dynamic_gaussian_blur.js`)
-- GObject subclass of `Shell.BlurEffect` registered as `NativeDynamicBlurEffect`
-- Handles HiDPI scaling via `St.ThemeContext.scale_factor`
-- Safe setters for `refraction-strength` and `chromatic-aberration` — no-op if patch not installed
+Settings changes trigger a full disable/re-enable cycle for the Dhruva component (lines 684–705 of `extension.js`).
 
-## Third-Party Extensions
+### DummyPipeline API
 
-### Dhruva Dock (`components/dhruva.js`)
-- **Discovery:** Runtime detection via `child-added` on `Main.uiGroup` and `global.stage`
-- **Actor structure:** `DhruvaContainer` → `DhruvaBackground` (blur target) + `Dhruva` (icon box)
-- **Integration pattern:** DummyPipeline blur injected as sibling behind `DhruvaBackground`
-- **Load-order handling:** Delayed re-scans at 500ms, 2s, 5s, 10s intervals
-- **Context menus:** Detected via `context-menu-overlay` CSS class, blur injected behind `DrawingArea`
+The Dhruva component uses `DummyPipeline` rather than `Pipeline` (no static blur support):
 
-### BoxPointer / Popup Menus (`components/boxpointer.js`)
-- **Integration pattern:** Monkey-patches `BoxPointer.prototype.open/close`
-- **Blur placement:** Sibling widget in BoxPointer's parent, positioned to match drawn rectangle (excluding arrow)
-- **Geometry tracking:** Reads `-arrow-rise`, `-arrow-border-radius` from theme node
-- **Background override:** Optionally sets `-arrow-background-color: transparent` for see-through effect
+```javascript
+// dhruva.js line 187-193
+const pipeline = new DummyPipeline(this.effects_manager, this.settings.dhruva);
+let [blurWidget, bgManager] = pipeline.create_background_with_effect(
+    background_group, 'bms-dhruva-blurred-widget'
+);
+```
 
-## Arch Linux Package Manager
+`DummyPipeline.create_background_with_effect()` returns:
+1. `blurWidget` — `St.Widget` with `NativeDynamicBlurEffect` attached
+2. `bgManager` — fake `Clutter.Actor` with `.backgroundActor` and `._bms_pipeline` references
 
-- `provides=('gnome-shell')` — Satisfies all packages depending on gnome-shell
-- `conflicts=('gnome-shell' 'gnome-shell-debug')` — Prevents dual installation
-- GSettings schema override installed to `/usr/share/glib-2.0/schemas/`
+## Dhruva Dock Extension (runtime integration)
+
+The `DhruvaBlur` component discovers Dhruva at runtime — no compile-time dependency.
+
+### Actor Discovery
+
+| Method | Signal | Actor Name |
+|--------|--------|------------|
+| `Main.uiGroup` / `global.stage` | `child-added` | `'DhruvaContainer'` |
+| Initial + timed scan | `_scan_for_docks()` at 500ms, 2s, 5s, 10s | `'DhruvaContainer'` children |
+| Context menu detection | `child-added` | CSS class `'context-menu-overlay'` |
+
+### Dhruva Actor Hierarchy (expected)
+
+```
+DhruvaContainer (Clutter.Actor, chrome)
+  ├── DhruvaBackground (St.Widget) — blur target
+  └── Dhruva (St.BoxLayout) — icon container
+```
+
+### Geometry Sync Signals
+
+The blur wrapper tracks 9 properties on `DhruvaBackground` and 9 on `DhruvaContainer`:
+
+```
+notify::x, notify::y, notify::width, notify::height,
+notify::scale-x, notify::scale-y,
+notify::translation-x, notify::translation-y,
+notify::pivot-point (bgActor only), notify::visible (container only)
+```
+
+Uses `get_transformed_position()` / `get_transformed_size()` + `parent.transform_stage_point()` for coordinate conversion.
+
+## GNOME GitLab (source dependency)
+
+| Repository | Tag/Commit | Purpose |
+|------------|-----------|---------|
+| `GNOME/gnome-shell` | `tag=50.0` | Main source tree |
+| `GNOME/libgnome-volume-control` | `commit=664eba4c` | Audio control subproject |
+| `ptomato/jasmine-gjs` | `commit=856465dd` | Test framework subproject |
+| `GNOME/libshew` | `commit=ed782477` | Embedded widget subproject |
+
+## No External Services
+
+This project has **no network dependencies** at runtime:
+- No REST APIs, databases, webhooks, or cloud services
+- No authentication providers
+- No telemetry or analytics
+- All integration is through GObject introspection bindings and Clutter/Cogl GPU pipelines
