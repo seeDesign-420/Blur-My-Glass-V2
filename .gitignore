@@ -2,6 +2,9 @@
 src/
 pkg/
 build/
+extension/build/
+extension/po/*.mo
+extension/schemas/gschemas.compiled
 *.pkg.tar*
 *.log
 
@@ -10,6 +13,20 @@ gnome-shell/
 libgnome-volume-control/
 jasmine-gjs/
 libshew/
+
+# Extension and workspace clutter
+blur-my-glass-live/
+blur-my-shell-fork/
+.planning/debug/
+Screencast From *.mp4
+*.code-workspace
+shadercode.txt
+patches/*.tmp
+patches/*shadertoy*
+patches/calendar_server_fix.patch
+patches/libical_api_fix.patch
+autostart/
+shards/
 
 # Symlink created during prepare()
 gvc

@@ -4,18 +4,19 @@
 #   Jan Alexander Steffens (heftig) <heftig@archlinux.org>
 #   Fabian Bornschein <fabiscafe@archlinux.org>
 
-pkgbase=gnome-shell-rounded-blur
+pkgbase=gnome-shell-blur-my-glass
 pkgname=(
-  gnome-shell-rounded-blur
-  gnome-shell-rounded-blur-docs
+  gnome-shell-blur-my-glass
+  gnome-shell-blur-my-glass-docs
 )
 pkgver=50.0
 pkgrel=1
 epoch=1
-pkgdesc="GNOME Shell with rounded blur mask for blur-my-shell (liquid glass capable)"
+pkgdesc="GNOME Shell with rounded blur mask for blur-my-glass (liquid glass capable)"
 url="https://github.com/seeDesign-420/blur-my-glass"
 arch=(x86_64)
 license=(GPL-3.0-or-later)
+options=(!lto)
 depends=(
   accountsservice
   at-spi2-core
@@ -104,6 +105,10 @@ prepare() {
   echo ":: Applying base patch: rounded_corners_mask.patch"
   patch -p1 -i "$startdir/patches/rounded_corners_mask.patch"
 
+  # Apply the libical API fix directly
+  echo ":: Applying libical API fix directly"
+  sed -i 's/ICalTime \* (\* get_prop_func) (ICalProperty \*prop)/ICalTime \* (\* get_prop_func) (const ICalProperty \*prop)/' src/calendar-server/gnome-shell-calendar-server.c
+
   # Conditionally apply the liquid glass overlay patch
   if [[ "${BLUR_PATCH:-}" == "liquid_glass_compositor" ]]; then
     echo ":: Applying overlay patch: liquid_glass_compositor.patch"
@@ -127,7 +132,7 @@ build() {
   meson compile -C build
 }
 
-package_gnome-shell-rounded-blur() {
+package_gnome-shell-blur-my-glass() {
   provides=('gnome-shell')
   conflicts=('gnome-shell' 'gnome-shell-debug')
   depends+=(libmutter-18.so)
@@ -156,7 +161,7 @@ END
   mv {"$pkgdir",doc}/usr/share/doc
 }
 
-package_gnome-shell-rounded-blur-docs() {
+package_gnome-shell-blur-my-glass-docs() {
   pkgdesc+=" (API documentation)"
   depends=()
 

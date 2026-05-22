@@ -1,0 +1,24 @@
+{
+    "description": "Adds blur and glass effects to GNOME Shell components, with rounded-corner support, liquid-glass variants, and Dhruva dock integration.",
+    "name": "Blur my Glass",
+    "shell-version": [
+        "46",
+        "47",
+        "48",
+        "49",
+        "50"
+    ],
+    "url": "https://github.com/seeDesign-420/blur-my-glass",
+    "uuid": "blur-my-glass@seedesign-420",
+    "gettext-domain": "blur-my-glass@seedesign-420",
+    "settings-schema": "org.gnome.shell.extensions.blur-my-shell",
+    "session-modes": [
+        "unlock-dialog",
+        "user"
+    ],
+    "original-authors": [
+        "me@aunetx.dev"
+    ],
+    "donations": {},
+    "version": 1
+}

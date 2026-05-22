@@ -1,9 +1,10 @@
 Subject: [PATCH] Shell.BlurEffect: apply rounded corners mask
 ---
 diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
+index d362b0a20..2d9fcb310 100644
 --- a/src/shell-blur-effect.c
 +++ b/src/shell-blur-effect.c
-@@ -50,6 +50,21 @@
+@@ -50,6 +50,22 @@ static const gchar *brightness_glsl_declarations =
  static const gchar *brightness_glsl =
  "  cogl_color_out.rgb *= brightness;                                       \n";
  
@@ -14,10 +15,11 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
 +static const gchar *mask_glsl =
 +"  vec2 uv = cogl_tex_coord_in[0].st;                                      \n"
 +"  vec2 p  = uv * u_size;                                                  \n"
-+"  vec2 q  = abs(p - 0.5 * u_size) - (0.5 * u_size - u_corner_radius);     \n"
++"  float radius = clamp(u_corner_radius, 0.0, 0.5 * min(u_size.x, u_size.y));\n"
++"  vec2 q  = abs(p - 0.5 * u_size) - (0.5 * u_size - radius);              \n"
 +"  float dist = min(max(q.x, q.y), 0.0)                                    \n"
-+"             + length(max(q, vec2(0.0))) - u_corner_radius;               \n"
-+"  float aa = max(fwidth(dist), 0.75);                                     \n"
++"             + length(max(q, vec2(0.0))) - radius;                        \n"
++"  float aa = max(fwidth(dist), 1.25);                                      \n"
 +"  float m = smoothstep(aa, -aa, dist);                                    \n"
 +"  cogl_color_out.rgb *= m;                                                \n"
 +"  cogl_color_out.a   *= m;                                                \n";
@@ -25,7 +27,7 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
  #define MIN_DOWNSCALE_SIZE 256.f
  #define MAX_RADIUS 12.f
  
-@@ -83,10 +96,16 @@
+@@ -83,10 +99,16 @@ struct _ShellBlurEffect
    FramebufferData brightness_fb;
    int brightness_uniform;
  
@@ -42,7 +44,7 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
  };
  
  G_DEFINE_TYPE (ShellBlurEffect, shell_blur_effect, CLUTTER_TYPE_EFFECT)
-@@ -96,6 +115,7 @@
+@@ -96,6 +118,7 @@ enum {
    PROP_RADIUS,
    PROP_BRIGHTNESS,
    PROP_MODE,
@@ -50,7 +52,7 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
    N_PROPS
  };
  
-@@ -151,6 +171,24 @@
+@@ -151,6 +174,24 @@ create_brightness_pipeline (void)
    return cogl_pipeline_copy (brightness_pipeline);
  }
  
@@ -75,7 +77,7 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
  
  static void
  update_brightness (ShellBlurEffect *self,
-@@ -171,6 +209,28 @@
+@@ -171,6 +212,28 @@ update_brightness (ShellBlurEffect *self,
      }
  }
  
@@ -104,7 +106,7 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
  static void
  setup_projection_matrix (CoglFramebuffer *framebuffer,
                           float            width,
-@@ -279,6 +339,23 @@
+@@ -279,6 +342,23 @@ update_background_fbo (ShellBlurEffect *self,
    return update_fbo (&self->background_fb, width, height, 1.0);
  }
  
@@ -122,13 +124,13 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
 +    return TRUE;
 +  }
 +
-+  return update_fbo (&self->mask_fb, width, height, downscale_factor);
++  return update_fbo (&self->mask_fb, width, height, 1.0);
 +}
 +
  static void
  clear_framebuffer_data (FramebufferData *fb_data)
  {
-@@ -328,6 +405,7 @@
+@@ -328,6 +408,7 @@ shell_blur_effect_set_actor (ClutterActorMeta *meta,
    clear_framebuffer_data (&self->actor_fb);
    clear_framebuffer_data (&self->background_fb);
    clear_framebuffer_data (&self->brightness_fb);
@@ -136,7 +138,7 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
  
    /* we keep a back pointer here, to avoid going through the ActorMeta */
    self->actor = clutter_actor_meta_get_actor (meta);
-@@ -396,8 +474,9 @@
+@@ -396,8 +477,9 @@ add_blurred_pipeline (ShellBlurEffect  *self,
    clutter_actor_get_size (self->actor, &width, &height);
  
    update_brightness (self, paint_opacity);
@@ -147,7 +149,7 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
    clutter_paint_node_set_static_name (pipeline_node, "ShellBlurEffect (final)");
    clutter_paint_node_add_child (node, pipeline_node);
  
-@@ -416,20 +495,33 @@
+@@ -416,16 +498,28 @@ create_blur_nodes (ShellBlurEffect  *self,
  {
    g_autoptr (ClutterPaintNode) brightness_node = NULL;
    g_autoptr (ClutterPaintNode) blur_node = NULL;
@@ -177,24 +179,7 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
    clutter_paint_node_add_rectangle (brightness_node,
                                      &(ClutterActorBox) {
                                        0.f, 0.f,
--                                      width, height,
-+                                      cogl_texture_get_width (self->mask_fb.texture),
-+                                      cogl_texture_get_height (self->mask_fb.texture),
-                                     });
- 
-   blur_node = clutter_blur_node_new (self->tex_width / self->downscale_factor,
-@@ -440,8 +532,8 @@
-   clutter_paint_node_add_rectangle (blur_node,
-                                     &(ClutterActorBox) {
-                                       0.f, 0.f,
--                                      cogl_texture_get_width (self->brightness_fb.texture),
--                                      cogl_texture_get_height (self->brightness_fb.texture),
-+                                      cogl_texture_get_width (self->mask_fb.texture),
-+                                      cogl_texture_get_height (self->mask_fb.texture),
-                                     });
- 
-   self->cache_flags |= BLUR_APPLIED;
-@@ -511,7 +603,8 @@
+@@ -511,7 +605,8 @@ update_framebuffers (ShellBlurEffect     *self,
    downscale_factor = calculate_downscale_factor (width, height, self->radius);
  
    updated = update_actor_fbo (self, width, height, downscale_factor) &&
@@ -204,7 +189,7 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
  
    if (self->mode == SHELL_BLUR_MODE_BACKGROUND)
      updated = updated && update_background_fbo (self, width, height);
-@@ -709,10 +802,12 @@
+@@ -709,10 +804,12 @@ shell_blur_effect_finalize (GObject *object)
    clear_framebuffer_data (&self->actor_fb);
    clear_framebuffer_data (&self->background_fb);
    clear_framebuffer_data (&self->brightness_fb);
@@ -217,29 +202,29 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
  
    G_OBJECT_CLASS (shell_blur_effect_parent_class)->finalize (object);
  }
-@@ -738,6 +833,10 @@
-     case PROP_MODE:
+@@ -739,6 +836,10 @@ shell_blur_effect_get_property (GObject    *object,
        g_value_set_enum (value, self->mode);
        break;
-+
+ 
 +    case PROP_CORNER_RADIUS:
 +      g_value_set_float (value, self->corner_radius);
 +      break;
- 
++
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-@@ -765,6 +864,10 @@
-     case PROP_MODE:
+     }
+@@ -766,6 +867,10 @@ shell_blur_effect_set_property (GObject      *object,
        shell_blur_effect_set_mode (self, g_value_get_enum (value));
        break;
-+
+ 
 +    case PROP_CORNER_RADIUS:
 +      shell_blur_effect_set_corner_radius (self, g_value_get_float (value));
 +      break;
- 
++
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-@@ -802,6 +905,11 @@
+     }
+@@ -802,6 +907,11 @@ shell_blur_effect_class_init (ShellBlurEffectClass *klass)
                         SHELL_BLUR_MODE_ACTOR,
                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
  
@@ -251,7 +236,7 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
    g_object_class_install_properties (object_class, N_PROPS, properties);
  }
  
-@@ -811,12 +919,18 @@
+@@ -811,12 +921,18 @@ shell_blur_effect_init (ShellBlurEffect *self)
    self->mode = SHELL_BLUR_MODE_ACTOR;
    self->radius = 0;
    self->brightness = 1.f;
@@ -270,7 +255,7 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
  }
  
  ShellBlurEffect *
-@@ -914,3 +1028,28 @@
+@@ -914,3 +1030,28 @@ shell_blur_effect_set_mode (ShellBlurEffect *self,
  
    g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_MODE]);
  }
@@ -300,9 +285,10 @@ diff --git a/src/shell-blur-effect.c b/src/shell-blur-effect.c
 +  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_CORNER_RADIUS]);
 +}
 diff --git a/src/shell-blur-effect.h b/src/shell-blur-effect.h
+index a0b216a71..4887d01d9 100644
 --- a/src/shell-blur-effect.h
 +++ b/src/shell-blur-effect.h
-@@ -54,4 +54,8 @@
+@@ -54,4 +54,8 @@ ShellBlurMode shell_blur_effect_get_mode (ShellBlurEffect *self);
  void shell_blur_effect_set_mode (ShellBlurEffect *self,
                                   ShellBlurMode    mode);
  

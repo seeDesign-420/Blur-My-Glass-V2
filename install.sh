@@ -3,7 +3,9 @@
 # https://github.com/seeDesign-420/blur-my-glass
 #
 # Usage:
-#   ./install.sh                    # Build with rounded corners mask (default)
+#   ./install.sh                    # Build shell + extension
+#   ./install.sh --shell-only       # Build only the patched shell package
+#   ./install.sh --extension-only   # Install only the extension fork
 #   ./install.sh --liquid-glass     # Build with full liquid glass compositor
 #   ./install.sh --noconfirm        # Skip pacman confirmation prompts
 #   ./install.sh --clean            # Clean build artifacts before building
@@ -28,18 +30,24 @@ die()   { err "$@"; exit 1; }
 PATCH="rounded_corners_mask"
 MAKEPKG_FLAGS="-si"
 CLEAN=false
+INSTALL_SHELL=true
+INSTALL_EXTENSION=true
 
 for arg in "$@"; do
   case "$arg" in
     --liquid-glass)  PATCH="liquid_glass_compositor" ;;
     --noconfirm)     MAKEPKG_FLAGS="-si --noconfirm" ;;
     --clean)         CLEAN=true ;;
+    --shell-only)    INSTALL_EXTENSION=false ;;
+    --extension-only) INSTALL_SHELL=false ;;
     --help|-h)
       echo "blur-my-glass installer"
       echo ""
       echo "Usage: ./install.sh [OPTIONS]"
       echo ""
       echo "Options:"
+      echo "  --shell-only     Build only the patched shell package"
+      echo "  --extension-only Install only the extension fork"
       echo "  --liquid-glass   Use the liquid glass compositor patch (experimental)"
       echo "  --noconfirm      Skip pacman confirmation prompts"
       echo "  --clean          Remove previous build artifacts before building"
@@ -52,13 +60,21 @@ for arg in "$@"; do
   esac
 done
 
+if [[ "$INSTALL_SHELL" == false && "$INSTALL_EXTENSION" == false ]]; then
+  die "Nothing selected — choose at least one of --shell-only or --extension-only"
+fi
+
 # ── Preflight checks ───────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Must be Arch Linux (or derivative)
-if ! command -v makepkg &>/dev/null; then
+# Must be Arch Linux (or derivative) for shell builds
+if [[ "$INSTALL_SHELL" == true ]] && ! command -v makepkg &>/dev/null; then
   die "makepkg not found — this installer requires Arch Linux (or an Arch-based distro)"
+fi
+
+if [[ "$INSTALL_EXTENSION" == true ]] && ! command -v gnome-extensions &>/dev/null; then
+  warn "gnome-extensions not found — extension installation may fail"
 fi
 
 # Verify patch files exist
@@ -86,37 +102,54 @@ echo ""
 if [[ "$CLEAN" == true ]]; then
   info "Cleaning previous build artifacts..."
   rm -rf src/ pkg/ gnome-shell/ libgnome-volume-control/ jasmine-gjs/ libshew/ gvc build/
+  rm -rf extension/build/
+  rm -f extension/po/*.mo
   rm -f *.pkg.tar* *.log
+  if [[ -d extension ]]; then
+    make -C extension clean >/dev/null 2>&1 || true
+  fi
   ok "Clean complete"
 fi
 
-# ── Build & install ─────────────────────────────────────────────────────────
-info "Installing makedepends (if needed)..."
+# ── Build shell package ────────────────────────────────────────────────────
+if [[ "$INSTALL_SHELL" == true ]]; then
+  info "Installing makedepends (if needed)..."
 
-# Check if any makedepends are missing
-MAKEDEPS=(asciidoc bash-completion evolution-data-server gi-docgen git glib2-devel gnome-keybindings gobject-introspection meson python-docutils sassc)
-MISSING=()
-for dep in "${MAKEDEPS[@]}"; do
-  if ! pacman -Qi "$dep" &>/dev/null; then
-    MISSING+=("$dep")
+  MAKEDEPS=(asciidoc bash-completion evolution-data-server gi-docgen git glib2-devel gnome-keybindings gobject-introspection meson python-docutils sassc)
+  MISSING=()
+  for dep in "${MAKEDEPS[@]}"; do
+    if ! pacman -Qi "$dep" &>/dev/null; then
+      MISSING+=("$dep")
+    fi
+  done
+
+  if [[ ${#MISSING[@]} -gt 0 ]]; then
+    warn "Missing makedepends: ${MISSING[*]}"
+    info "Installing them now..."
+    sudo pacman -S --needed --noconfirm "${MISSING[@]}"
   fi
-done
 
-if [[ ${#MISSING[@]} -gt 0 ]]; then
-  warn "Missing makedepends: ${MISSING[*]}"
-  info "Installing them now..."
-  sudo pacman -S --needed --noconfirm "${MISSING[@]}"
+  info "Building shell package with ${BOLD}${PATCH}${RESET} patch..."
+  echo ""
+  BLUR_PATCH="$PATCH" makepkg $MAKEPKG_FLAGS
 fi
 
-info "Building gnome-shell-rounded-blur with ${BOLD}${PATCH}${RESET} patch..."
-echo ""
-
-BLUR_PATCH="$PATCH" makepkg $MAKEPKG_FLAGS
+# ── Build extension package ────────────────────────────────────────────────
+if [[ "$INSTALL_EXTENSION" == true ]]; then
+  info "Installing bundled extension..."
+  make -C extension install
+fi
 
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════╗${RESET}"
 echo -e "${GREEN}║          Installation complete!          ║${RESET}"
 echo -e "${GREEN}╚══════════════════════════════════════════╝${RESET}"
 echo ""
-info "Log out and back in (or reboot) to activate the patched GNOME Shell."
+if [[ "$INSTALL_SHELL" == true && "$INSTALL_EXTENSION" == true ]]; then
+  info "Log out and back in (or reboot) to activate the shell and extension changes."
+elif [[ "$INSTALL_SHELL" == true ]]; then
+  info "Log out and back in (or reboot) to activate the patched GNOME Shell."
+else
+  info "Restart GNOME Shell or log out and back in to reload the extension."
+fi
 echo ""

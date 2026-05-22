@@ -1,15 +1,15 @@
 --- a/src/shell-blur-effect.c
 +++ b/src/shell-blur-effect.c
-@@ -48,7 +48,85 @@
+@@ -48,7 +48,106 @@
  "uniform float brightness;                                                 \n";
  
  static const gchar *brightness_glsl =
 -"  cogl_color_out.rgb *= brightness;                                       \n";
 +"  cogl_color_out.rgb *= brightness;                                       \n"
 +"  /* Border highlight from SDF */                                         \n"
-+"  cogl_color_out.rgb += vec3(r_border * r_transition * 0.15);             \n"
++"  cogl_color_out.rgb += vec3(r_border * r_transition * r_strength * 0.15);\n"
 +"  /* Vertical gradient for top-light gloss */                             \n"
-+"  cogl_color_out.rgb += vec3(r_gradient * r_transition * 0.2);            \n";
++"  cogl_color_out.rgb += vec3(r_gradient * r_transition * r_strength * 0.2);\n";
 +
 +/* Declarations for the texture-lookup (layer) snippet.
 + * Uniforms MUST be declared here because COGL_SNIPPET_HOOK_TEXTURE_LOOKUP
@@ -19,11 +19,15 @@
 +static const gchar *refraction_lookup_declarations =
 +"uniform float refraction_strength;                                        \n"
 +"uniform vec2  u_refract_size;                                             \n"
++"uniform vec2  u_refract_origin;                                           \n"
++"uniform vec2  u_refract_bounds;                                           \n"
 +"uniform float u_refract_radius;                                           \n"
++"uniform float u_refract_inner_radius;                                     \n"
 +"/* Shared globals: written by texture-lookup, read by fragment hook */    \n"
 +"float r_transition = 0.0;                                                 \n"
 +"float r_border = 0.0;                                                     \n"
-+"float r_gradient = 0.0;                                                   \n";
++"float r_gradient = 0.0;                                                   \n"
++"float r_strength = 0.0;                                                   \n";
 +
 +static const gchar *refraction_replace_glsl =
 +"/* Box-lens refraction with anti-aliased texture sampling.                 \n"
@@ -33,32 +37,47 @@
 +"/* Capture screen-space derivatives BEFORE any branching */               \n"
 +"vec2 r_ddx = dFdx(cogl_tex_coord.st);                                    \n"
 +"vec2 r_ddy = dFdy(cogl_tex_coord.st);                                    \n"
++"r_strength = clamp(refraction_strength, 0.0, 2.0);                       \n"
++"if (r_strength <= 0.0) {                                                  \n"
++"  r_transition = 0.0;                                                     \n"
++"  r_border = 0.0;                                                         \n"
++"  r_gradient = 0.0;                                                       \n"
++"  cogl_texel = textureGrad(cogl_sampler, cogl_tex_coord.st, r_ddx, r_ddy);\n"
++"} else {                                                                  \n"
 +"                                                                          \n"
++"/* Actor clips can be smaller than the blur actor (static window blur). */\n"
++"vec2 r_actor_size = max(u_refract_size, vec2(1.0));                      \n"
++"vec2 r_bounds = max(u_refract_bounds, vec2(1.0));                        \n"
++"vec2 r_local_uv = (cogl_tex_coord.st * r_actor_size - u_refract_origin) / r_bounds;\n"
 +"/* Aspect-corrected UV space */                                           \n"
-+"vec2 r_ar = vec2(u_refract_size.x / u_refract_size.y, 1.0);              \n"
-+"vec2 r_m2 = cogl_tex_coord.st - 0.5;                                     \n"
++"vec2 r_ar = vec2(r_bounds.x / r_bounds.y, 1.0);                          \n"
++"vec2 r_m2 = r_local_uv - 0.5;                                            \n"
 +"vec2 r_pos = vec2(r_m2.x * r_ar.x, r_m2.y);                              \n"
 +"                                                                          \n"
 +"/* Rounded-rect box SDF (Iquilez) with per-corner radii */                \n"
 +"vec2 r_wh = vec2(0.5, 0.5) * r_ar;                                       \n"
-+"float r_cr = u_refract_radius / u_refract_size.y;                         \n"
++"float r_cr = u_refract_radius / r_bounds.y;                               \n"
 +"vec4 r_corners = vec4(r_cr);                                              \n"
 +"r_corners.xy = (r_pos.x > 0.0) ? r_corners.xy : r_corners.zw;            \n"
 +"r_corners.x  = (r_pos.y > 0.0) ? r_corners.x  : r_corners.y;            \n"
 +"vec2 r_q = abs(r_pos) - r_wh + r_corners.x;                              \n"
 +"float r_sd = min(max(r_q.x, r_q.y), 0.0)                                 \n"
 +"           + length(max(r_q, vec2(0.0))) - r_corners.x;                  \n"
++"float r_inner_cr = u_refract_inner_radius / r_bounds.y;                   \n"
++"vec2 r_inner_q = abs(r_pos) - r_wh + r_inner_cr;                          \n"
++"float r_inner_sd = min(max(r_inner_q.x, r_inner_q.y), 0.0)                \n"
++"                 + length(max(r_inner_q, vec2(0.0))) - r_inner_cr;        \n"
 +"                                                                          \n"
 +"/* Anti-aliased transition using screen-space derivatives */              \n"
-+"float r_aa = max(fwidth(r_sd), 0.75 / u_refract_size.y);                  \n"
++"float r_aa = max(fwidth(r_sd), 0.75 / r_bounds.y);                        \n"
 +"r_transition = smoothstep(r_aa, -r_aa, r_sd);                             \n"
 +"                                                                          \n"
 +"/* Border highlight: 1 pixel wide stroke */                               \n"
-+"float r_bw = 0.5 / u_refract_size.y;                                      \n"
++"float r_bw = 0.5 / r_bounds.y;                                            \n"
 +"r_border = smoothstep(r_aa, 0.0, abs(r_sd + r_bw) - r_bw);                \n"
 +"                                                                          \n"
 +"/* Gradient ring for top-light gloss (4px band) */                        \n"
-+"float r_gw = 2.0 / u_refract_size.y;                                      \n"
++"float r_gw = 2.0 / r_bounds.y;                                            \n"
 +"float r_grad_ring = smoothstep(2.0*r_aa, -2.0*r_aa, r_sd + r_gw)          \n"
 +"                  - smoothstep(1.0*r_aa, -1.0*r_aa, r_sd - r_gw);        \n"
 +"r_gradient = clamp(clamp(r_m2.y, 0.0, 0.2) + 0.1, 0.0, 1.0) / 2.0       \n"
@@ -67,10 +86,11 @@
 +"                                                                          \n"
 +"/* Zoom-lens refraction: sin(pow(dist, 0.25) * pi/2) warp */             \n"
 +"vec2 r_final_uv = cogl_tex_coord.st;                                      \n"
-+"if (r_transition > 0.0 && refraction_strength > 0.0) {                    \n"
-+"  float r_dist = clamp(-r_sd / refraction_strength, 0.0, 1.0);           \n"
++"if (r_transition > 0.0) {                                                 \n"
++"  float r_dist = clamp(-r_inner_sd / r_strength, 0.0, 1.0);              \n"
 +"  float r_warp = sin(pow(r_dist, 0.25) * 1.5707963);                     \n"
-+"  vec2 r_lens = r_m2 * r_warp + 0.5;                                     \n"
++"  vec2 r_lens_local = r_m2 * r_warp + 0.5;                               \n"
++"  vec2 r_lens = (u_refract_origin + r_lens_local * r_bounds) / r_actor_size;\n"
 +"  r_final_uv = mix(cogl_tex_coord.st, r_lens, r_transition);             \n"
 +"                                                                          \n"
 +"  /* Analytical derivatives: d(mix(a,b,t))/dp = (1-t)*da/dp + t*db/dp    \n"
@@ -83,76 +103,117 @@
 +"}                                                                         \n"
 +"                                                                          \n"
 +"/* Anti-aliased texture lookup with corrected derivatives */              \n"
-+"cogl_texel = textureGrad(cogl_sampler, r_final_uv, r_ddx, r_ddy);        \n";
++"cogl_texel = textureGrad(cogl_sampler, r_final_uv, r_ddx, r_ddy);        \n"
++"}                                                                         \n";
  
  static const gchar *mask_glsl_declarations =
  "uniform float u_corner_radius;                                            \n"
-@@ -102,12 +180,17 @@
+@@ -102,6 +201,12 @@
+   FramebufferData mask_fb;
    int corner_radius_uniform;
    int mask_size_uniform;
- 
 +  int refract_size_uniform;
++  int refract_origin_uniform;
++  int refract_bounds_uniform;
 +  int refract_radius_uniform;
++  int refract_inner_radius_uniform;
 +  int refraction_strength_uniform;
-+
+ 
    ShellBlurMode mode;
    float downscale_factor;
-   float brightness;
+@@ -109,6 +214,9 @@
    int radius;
  
    float corner_radius;
 +  float refraction_strength;
++  float refraction_radius;
++  float refraction_inner_radius;
  };
  
  G_DEFINE_TYPE (ShellBlurEffect, shell_blur_effect, CLUTTER_TYPE_EFFECT)
-@@ -118,6 +201,7 @@
+@@ -119,6 +227,9 @@
    PROP_BRIGHTNESS,
    PROP_MODE,
    PROP_CORNER_RADIUS,
 +  PROP_REFRACTION_STRENGTH,
++  PROP_REFRACTION_RADIUS,
++  PROP_REFRACTION_INNER_RADIUS,
    N_PROPS
  };
  
-@@ -168,6 +252,13 @@
+@@ -169,6 +280,13 @@
                                    brightness_glsl);
        cogl_pipeline_add_snippet (brightness_pipeline, snippet);
        g_object_unref (snippet);
 +
-+      /* Add refraction texture-lookup snippet (textureGrad with Jacobian) */
 +      snippet = cogl_snippet_new (COGL_SNIPPET_HOOK_TEXTURE_LOOKUP,
-+                                  refraction_lookup_declarations, NULL);
++                                  refraction_lookup_declarations,
++                                  NULL);
 +      cogl_snippet_set_replace (snippet, refraction_replace_glsl);
 +      cogl_pipeline_add_layer_snippet (brightness_pipeline, 0, snippet);
 +      g_object_unref (snippet);
      }
  
    return cogl_pipeline_copy (brightness_pipeline);
-@@ -231,6 +322,24 @@
-                                      self->mask_size_uniform,
-                                      2, 1, size);
-   }
+@@ -210,6 +328,57 @@
+                                     self->brightness_uniform,
+                                     self->brightness);
+     }
 +
 +  if (self->refraction_strength_uniform > -1)
 +    cogl_pipeline_set_uniform_1f (self->brightness_fb.pipeline,
 +                                  self->refraction_strength_uniform,
 +                                  self->refraction_strength);
 +
-+  if (self->refract_size_uniform > -1)
-+    {
-+      const float refract_size[2] = { width, height };
-+      cogl_pipeline_set_uniform_float (self->brightness_fb.pipeline,
-+                                       self->refract_size_uniform,
-+                                       2, 1, refract_size);
-+    }
-+
 +  if (self->refract_radius_uniform > -1)
 +    cogl_pipeline_set_uniform_1f (self->brightness_fb.pipeline,
 +                                  self->refract_radius_uniform,
-+                                  self->corner_radius);
++                                  self->refraction_radius);
++
++  if (self->refract_inner_radius_uniform > -1)
++    cogl_pipeline_set_uniform_1f (self->brightness_fb.pipeline,
++                                  self->refract_inner_radius_uniform,
++                                  self->refraction_inner_radius);
++
++  if (self->refract_size_uniform > -1)
++    {
++      float width, height;
++      float refract_size[2];
++      float refract_origin[2] = { 0.f, 0.f };
++      float refract_bounds[2];
++
++      clutter_actor_get_size (self->actor, &width, &height);
++      refract_size[0] = MAX (width, 1.f);
++      refract_size[1] = MAX (height, 1.f);
++      refract_bounds[0] = refract_size[0];
++      refract_bounds[1] = refract_size[1];
++      if (clutter_actor_has_clip (self->actor))
++        {
++          clutter_actor_get_clip (self->actor,
++                                  &refract_origin[0],
++                                  &refract_origin[1],
++                                  &refract_bounds[0],
++                                  &refract_bounds[1]);
++          refract_bounds[0] = MAX (refract_bounds[0], 1.f);
++          refract_bounds[1] = MAX (refract_bounds[1], 1.f);
++        }
++
++      cogl_pipeline_set_uniform_float (self->brightness_fb.pipeline,
++                                       self->refract_size_uniform,
++                                       2, 1, refract_size);
++      if (self->refract_origin_uniform > -1)
++        cogl_pipeline_set_uniform_float (self->brightness_fb.pipeline,
++                                         self->refract_origin_uniform,
++                                         2, 1, refract_origin);
++      if (self->refract_bounds_uniform > -1)
++        cogl_pipeline_set_uniform_float (self->brightness_fb.pipeline,
++                                         self->refract_bounds_uniform,
++                                         2, 1, refract_bounds);
++    }
  }
  
  static void
-@@ -840,6 +949,10 @@
+@@ -841,6 +1010,18 @@
        g_value_set_float (value, self->corner_radius);
        break;
  
@@ -160,10 +221,18 @@
 +      g_value_set_float (value, self->refraction_strength);
 +      break;
 +
++    case PROP_REFRACTION_RADIUS:
++      g_value_set_float (value, self->refraction_radius);
++      break;
++
++    case PROP_REFRACTION_INNER_RADIUS:
++      g_value_set_float (value, self->refraction_inner_radius);
++      break;
++
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
      }
-@@ -871,6 +984,10 @@
+@@ -872,6 +1053,18 @@
        shell_blur_effect_set_corner_radius (self, g_value_get_float (value));
        break;
  
@@ -171,10 +240,18 @@
 +      shell_blur_effect_set_refraction_strength (self, g_value_get_float (value));
 +      break;
 +
++    case PROP_REFRACTION_RADIUS:
++      shell_blur_effect_set_refraction_radius (self, g_value_get_float (value));
++      break;
++
++    case PROP_REFRACTION_INNER_RADIUS:
++      shell_blur_effect_set_refraction_inner_radius (self, g_value_get_float (value));
++      break;
++
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
      }
-@@ -912,6 +1029,11 @@
+@@ -913,6 +1106,21 @@
                          0.f, G_MAXFLOAT, 0.f,
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
  
@@ -183,18 +260,30 @@
 +                        0.f, 2.f, 0.f,
 +                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 +
++  properties[PROP_REFRACTION_RADIUS] =
++    g_param_spec_float ("refraction-radius", NULL, NULL,
++                        0.f, G_MAXFLOAT, 0.f,
++                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
++
++  properties[PROP_REFRACTION_INNER_RADIUS] =
++    g_param_spec_float ("refraction-inner-radius", NULL, NULL,
++                        0.f, G_MAXFLOAT, 0.f,
++                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
++
    g_object_class_install_properties (object_class, N_PROPS, properties);
  }
  
-@@ -922,6 +1044,7 @@
+@@ -923,6 +1131,9 @@
    self->radius = 0;
    self->brightness = 1.f;
    self->corner_radius = 0.f;
 +  self->refraction_strength = 0.f;
++  self->refraction_radius = 0.f;
++  self->refraction_inner_radius = 0.f;
  
    self->actor_fb.pipeline = create_base_pipeline ();
    self->background_fb.pipeline = create_base_pipeline ();
-@@ -929,6 +1052,12 @@
+@@ -930,6 +1141,18 @@
    self->mask_fb.pipeline = create_mask_pipeline ();
    self->brightness_uniform =
      cogl_pipeline_get_uniform_location (self->brightness_fb.pipeline, "brightness");
@@ -202,12 +291,18 @@
 +    cogl_pipeline_get_uniform_location (self->brightness_fb.pipeline, "refraction_strength");
 +  self->refract_size_uniform =
 +    cogl_pipeline_get_uniform_location (self->brightness_fb.pipeline, "u_refract_size");
++  self->refract_origin_uniform =
++    cogl_pipeline_get_uniform_location (self->brightness_fb.pipeline, "u_refract_origin");
++  self->refract_bounds_uniform =
++    cogl_pipeline_get_uniform_location (self->brightness_fb.pipeline, "u_refract_bounds");
 +  self->refract_radius_uniform =
 +    cogl_pipeline_get_uniform_location (self->brightness_fb.pipeline, "u_refract_radius");
++  self->refract_inner_radius_uniform =
++    cogl_pipeline_get_uniform_location (self->brightness_fb.pipeline, "u_refract_inner_radius");
    self->corner_radius_uniform =
      cogl_pipeline_get_uniform_location (self->mask_fb.pipeline, "u_corner_radius");
    self->mask_size_uniform =
-@@ -1055,3 +1184,28 @@
+@@ -1056,3 +1279,84 @@
  
    g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_CORNER_RADIUS]);
  }
@@ -225,10 +320,12 @@
 +{
 +  g_return_if_fail (SHELL_IS_BLUR_EFFECT (self));
 +
++  refraction_strength = CLAMP (refraction_strength, 0.f, 2.f);
++
 +  if (self->refraction_strength == refraction_strength)
 +    return;
 +
-+  self->refraction_strength = CLAMP (refraction_strength, 0.f, 2.f);
++  self->refraction_strength = refraction_strength;
 +  self->cache_flags &= ~BLUR_APPLIED;
 +
 +  if (self->actor)
@@ -236,14 +333,76 @@
 +
 +  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_REFRACTION_STRENGTH]);
 +}
++
++float
++shell_blur_effect_get_refraction_radius (ShellBlurEffect *self)
++{
++  g_return_val_if_fail (SHELL_IS_BLUR_EFFECT (self), 0.f);
++  return self->refraction_radius;
++}
++
++void
++shell_blur_effect_set_refraction_radius (ShellBlurEffect *self,
++                                         float            refraction_radius)
++{
++  g_return_if_fail (SHELL_IS_BLUR_EFFECT (self));
++
++  refraction_radius = MAX (0.f, refraction_radius);
++
++  if (self->refraction_radius == refraction_radius)
++    return;
++
++  self->refraction_radius = refraction_radius;
++  self->cache_flags &= ~BLUR_APPLIED;
++
++  if (self->actor)
++    clutter_effect_queue_repaint (CLUTTER_EFFECT (self));
++
++  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_REFRACTION_RADIUS]);
++}
++
++float
++shell_blur_effect_get_refraction_inner_radius (ShellBlurEffect *self)
++{
++  g_return_val_if_fail (SHELL_IS_BLUR_EFFECT (self), 0.f);
++  return self->refraction_inner_radius;
++}
++
++void
++shell_blur_effect_set_refraction_inner_radius (ShellBlurEffect *self,
++                                               float            refraction_inner_radius)
++{
++  g_return_if_fail (SHELL_IS_BLUR_EFFECT (self));
++
++  refraction_inner_radius = MAX (0.f, refraction_inner_radius);
++
++  if (self->refraction_inner_radius == refraction_inner_radius)
++    return;
++
++  self->refraction_inner_radius = refraction_inner_radius;
++  self->cache_flags &= ~BLUR_APPLIED;
++
++  if (self->actor)
++    clutter_effect_queue_repaint (CLUTTER_EFFECT (self));
++
++  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_REFRACTION_INNER_RADIUS]);
++}
 --- a/src/shell-blur-effect.h
 +++ b/src/shell-blur-effect.h
-@@ -58,4 +58,8 @@
+@@ -58,4 +58,16 @@
  void shell_blur_effect_set_corner_radius (ShellBlurEffect *self,
                                            float            corner_radius);
  
 +float shell_blur_effect_get_refraction_strength (ShellBlurEffect *self);
 +void shell_blur_effect_set_refraction_strength (ShellBlurEffect *self,
 +                                                float            refraction_strength);
++
++float shell_blur_effect_get_refraction_radius (ShellBlurEffect *self);
++void shell_blur_effect_set_refraction_radius (ShellBlurEffect *self,
++                                              float            refraction_radius);
++
++float shell_blur_effect_get_refraction_inner_radius (ShellBlurEffect *self);
++void shell_blur_effect_set_refraction_inner_radius (ShellBlurEffect *self,
++                                                    float            refraction_inner_radius);
 +
  G_END_DECLS
