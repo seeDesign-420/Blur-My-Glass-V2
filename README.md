@@ -1,23 +1,28 @@
 # blur-my-glass
 
-`blur-my-glass` bundles two pieces: a patched GNOME Shell package and a vendored blur-my-shell fork with Dhruva integration.
+`blur-my-glass` is a clean packaging repo for two shipped pieces:
+- a patched GNOME Shell package for rounded blur and liquid-glass builds
+- a vendored blur-my-shell fork with Dhruva integration
 
-## Install
+## Quick Start
 
 ```bash
+git clone https://github.com/seeDesign-420/Blur-My-Glass-V2.git
+cd Blur-My-Glass-V2
 ./install.sh
 ```
 
-That installs both layers on Arch Linux. Use `--shell-only` or `--extension-only` to install one side only, `--liquid-glass` for the experimental compositor path, and `--clean` to remove build output first.
+Use `--liquid-glass` for the experimental compositor path, `--shell-only` or `--extension-only` to install one side only, and `--clean` to remove build output first.
 
-## Layout
+## What Is In The Repo
 
-- `PKGBUILD` builds the patched shell package.
-- `extension/` contains the extension fork that is installed by `make -C extension install`.
-- `install.sh` is the top-level entrypoint for the combined product.
+- `install.sh` is the single entrypoint for both layers.
+- `PKGBUILD` builds the patched shell package on Arch Linux.
+- `extension/` contains the bundled extension source and metadata.
+- `patches/` contains the shell patch set used by `PKGBUILD` and `install.sh`.
 
-## Notes
+## Compatibility
 
-- The shell patch still targets GNOME 50.
-- The extension keeps the upstream schema id for compatibility.
-- Legacy Dhruva deploy helpers were removed in favor of the unified installer.
+- The shell package targets GNOME 50.
+- The extension keeps the upstream schema id for compatibility with existing settings.
+- This repo is intended for Arch Linux or an Arch-based distro.
