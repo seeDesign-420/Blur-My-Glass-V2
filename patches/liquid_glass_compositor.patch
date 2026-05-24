@@ -1,11 +1,13 @@
 --- a/src/shell-blur-effect.c
 +++ b/src/shell-blur-effect.c
-@@ -48,7 +48,106 @@
+@@ -48,7 +48,112 @@
  "uniform float brightness;                                                 \n";
  
  static const gchar *brightness_glsl =
 -"  cogl_color_out.rgb *= brightness;                                       \n";
-+"  cogl_color_out.rgb *= brightness;                                       \n"
++"  float r_shape = mix(1.0, r_transition, step(0.0001, r_strength));      \n"
++"  cogl_color_out.rgb *= brightness * r_shape;                            \n"
++"  cogl_color_out.a *= r_shape;                                           \n"
 +"  /* Border highlight from SDF */                                         \n"
 +"  cogl_color_out.rgb += vec3(r_border * r_transition * r_strength * 0.15);\n"
 +"  /* Vertical gradient for top-light gloss */                             \n"
@@ -32,17 +34,14 @@
 +static const gchar *refraction_replace_glsl =
 +"/* Box-lens refraction with anti-aliased texture sampling.                 \n"
 +" * Uses SDF-based sin() warp for zoom-lens refraction.                    \n"
-+" * Computes textureGrad derivatives to prevent Moire artifacts. */        \n"
++" * Uses bounds-safe multi-sample texture2D lookups for broad compatibility.*/\n"
 +"                                                                          \n"
-+"/* Capture screen-space derivatives BEFORE any branching */               \n"
-+"vec2 r_ddx = dFdx(cogl_tex_coord.st);                                    \n"
-+"vec2 r_ddy = dFdy(cogl_tex_coord.st);                                    \n"
 +"r_strength = clamp(refraction_strength, 0.0, 2.0);                       \n"
 +"if (r_strength <= 0.0) {                                                  \n"
 +"  r_transition = 0.0;                                                     \n"
 +"  r_border = 0.0;                                                         \n"
 +"  r_gradient = 0.0;                                                       \n"
-+"  cogl_texel = textureGrad(cogl_sampler, cogl_tex_coord.st, r_ddx, r_ddy);\n"
++"  cogl_texel = texture2D(cogl_sampler, cogl_tex_coord.st);                \n"
 +"} else {                                                                  \n"
 +"                                                                          \n"
 +"/* Actor clips can be smaller than the blur actor (static window blur). */\n"
@@ -92,18 +91,25 @@
 +"  vec2 r_lens_local = r_m2 * r_warp + 0.5;                               \n"
 +"  vec2 r_lens = (u_refract_origin + r_lens_local * r_bounds) / r_actor_size;\n"
 +"  r_final_uv = mix(cogl_tex_coord.st, r_lens, r_transition);             \n"
-+"                                                                          \n"
-+"  /* Analytical derivatives: d(mix(a,b,t))/dp = (1-t)*da/dp + t*db/dp    \n"
-+"   * da/dp = identity (r_ddx, r_ddy)                                     \n"
-+"   * db/dp = r_warp * identity  (lens is linear in uv for fixed SDF)     \n"
-+"   * Combined: mix(1.0, r_warp, r_transition) * original_derivatives */  \n"
-+"  float r_scale = mix(1.0, r_warp, r_transition);                        \n"
-+"  r_ddx *= r_scale;                                                      \n"
-+"  r_ddy *= r_scale;                                                      \n"
 +"}                                                                         \n"
 +"                                                                          \n"
-+"/* Anti-aliased texture lookup with corrected derivatives */              \n"
-+"cogl_texel = textureGrad(cogl_sampler, r_final_uv, r_ddx, r_ddy);        \n"
++"/* Bounds-safe RGSS sampling to soften aliasing without textureGrad. */   \n"
++"vec2 r_margin = vec2(1.25) / r_actor_size;                                \n"
++"r_final_uv = clamp(r_final_uv, r_margin, vec2(1.0) - r_margin);           \n"
++"vec2 r_texel = vec2(0.75) / r_actor_size;                                  \n"
++"vec2 r_off1 = vec2( 0.375, -0.125) * r_texel;                             \n"
++"vec2 r_off2 = vec2( 0.125,  0.375) * r_texel;                             \n"
++"vec2 r_off3 = vec2(-0.375,  0.125) * r_texel;                             \n"
++"vec2 r_off4 = vec2(-0.125, -0.375) * r_texel;                             \n"
++"vec2 r_uv1 = clamp(r_final_uv + r_off1, r_margin, vec2(1.0) - r_margin);  \n"
++"vec2 r_uv2 = clamp(r_final_uv + r_off2, r_margin, vec2(1.0) - r_margin);  \n"
++"vec2 r_uv3 = clamp(r_final_uv + r_off3, r_margin, vec2(1.0) - r_margin);  \n"
++"vec2 r_uv4 = clamp(r_final_uv + r_off4, r_margin, vec2(1.0) - r_margin);  \n"
++"cogl_texel = 0.25 * (                                                     \n"
++"  texture2D(cogl_sampler, r_uv1) +                                        \n"
++"  texture2D(cogl_sampler, r_uv2) +                                        \n"
++"  texture2D(cogl_sampler, r_uv3) +                                        \n"
++"  texture2D(cogl_sampler, r_uv4));                                        \n"
 +"}                                                                         \n";
  
  static const gchar *mask_glsl_declarations =

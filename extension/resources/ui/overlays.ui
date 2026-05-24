@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="blur-my-shell@aunetx">
+  <template class="BmsGlassOverlays" parent="AdwPreferencesPage">
+    <property name="name">overlays</property>
+    <property name="title" translatable="yes">Overlays</property>
+    <property name="icon-name">overlays-symbolic</property>
+
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Overlay blur</property>
+        <property name="description" translatable="yes">Shared blur profile for Shell overlays and pop-up menus.</property>
+        <property name="header-suffix">
+          <object class="GtkSwitch" id="blur">
+            <property name="valign">center</property>
+          </object>
+        </property>
+
+        <child>
+          <object class="AdwActionRow">
+            <property name="title" translatable="yes">Blur type</property>
+            <property name="subtitle" translatable="yes">Static blur uses a shared pipeline, while dynamic blur follows the live actor geometry.</property>
+            <property name="activatable-widget">blur_mode_choose</property>
+            <property name="sensitive" bind-source="blur" bind-property="state" bind-flags="sync-create" />
+
+            <child>
+              <object class="GtkBox" id="blur_mode_choose">
+                <property name="valign">center</property>
+                <property name="hexpand">false</property>
+                <style>
+                  <class name="linked" />
+                </style>
+
+                <child>
+                  <object class="GtkToggleButton" id="mode_static">
+                    <property name="valign">center</property>
+                    <property name="hexpand">true</property>
+                    <property name="group">mode_dynamic</property>
+                    <property name="child">
+                      <object class="AdwButtonContent">
+                        <property name="icon-name">static-mode-symbolic</property>
+                        <property name="label" translatable="yes">Static</property>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkToggleButton" id="mode_dynamic">
+                    <property name="valign">center</property>
+                    <property name="hexpand">true</property>
+                    <property name="child">
+                      <object class="AdwButtonContent">
+                        <property name="icon-name">dynamic-mode-symbolic</property>
+                        <property name="label" translatable="yes">Dynamic</property>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="BmsGlassPipelineChooseRow" id="pipeline_choose_row">
+            <property name="sensitive" bind-source="blur" bind-property="state" bind-flags="sync-create" />
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwActionRow" id="sigma_row">
+            <property name="title" translatable="yes">Sigma</property>
+            <property name="subtitle" translatable="yes">The intensity of the blur.</property>
+            <property name="activatable-widget">sigma_scale</property>
+            <property name="sensitive" bind-source="blur" bind-property="state" bind-flags="sync-create" />
+
+            <child>
+              <object class="GtkScale" id="sigma_scale">
+                <property name="valign">center</property>
+                <property name="hexpand">true</property>
+                <property name="width-request">200px</property>
+                <property name="draw-value">true</property>
+                <property name="value-pos">right</property>
+                <property name="digits">0</property>
+                <property name="adjustment">sigma</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwActionRow" id="brightness_row">
+            <property name="title" translatable="yes">Brightness</property>
+            <property name="subtitle" translatable="yes">The brightness of the blur effect, a high value might make the text harder to read.</property>
+            <property name="activatable-widget">brightness_scale</property>
+            <property name="sensitive" bind-source="blur" bind-property="state" bind-flags="sync-create" />
+
+            <child>
+              <object class="GtkScale" id="brightness_scale">
+                <property name="valign">center</property>
+                <property name="hexpand">true</property>
+                <property name="width-request">200px</property>
+                <property name="draw-value">true</property>
+                <property name="value-pos">right</property>
+                <property name="digits">2</property>
+                <property name="adjustment">brightness</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwActionRow" id="refraction_strength_row">
+            <property name="title" translatable="yes">Refraction strength</property>
+            <property name="subtitle" translatable="yes">Strength of the liquid glass distortion.</property>
+            <property name="activatable-widget">refraction_strength_scale</property>
+            <property name="sensitive" bind-source="blur" bind-property="state" bind-flags="sync-create" />
+
+            <child>
+              <object class="GtkScale" id="refraction_strength_scale">
+                <property name="valign">center</property>
+                <property name="hexpand">true</property>
+                <property name="width-request">200px</property>
+                <property name="draw-value">true</property>
+                <property name="value-pos">right</property>
+                <property name="digits">2</property>
+                <property name="adjustment">refraction_strength</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwSpinRow" id="refraction_radius_row">
+            <property name="title" translatable="yes">Refraction radius</property>
+            <property name="subtitle" translatable="yes">Radius used by the liquid glass distortion.</property>
+            <property name="adjustment">refraction_radius</property>
+            <property name="sensitive" bind-source="blur" bind-property="state" bind-flags="sync-create" />
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwSpinRow" id="refraction_inner_radius_row">
+            <property name="title" translatable="yes">Refraction inner rounding</property>
+            <property name="subtitle" translatable="yes">Additional rounding applied only to the inner refraction corners.</property>
+            <property name="adjustment">refraction_inner_radius</property>
+            <property name="sensitive" bind-source="blur" bind-property="state" bind-flags="sync-create" />
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwActionRow" id="corner_radius_not_found_row">
+            <property name="title" translatable="yes">Corner radius</property>
+            <property name="subtitle" translatable="yes">Install the GNOME Rounded Blur library to enable rounded corners in dynamic blur mode.</property>
+            <property name="sensitive" bind-source="blur" bind-property="state" bind-flags="sync-create" />
+            <property name="activatable-widget">open_gnome_rounded_blur</property>
+
+            <child type="suffix">
+              <object class="GtkButton" id="open_gnome_rounded_blur">
+                <property name="icon-name">adw-external-link-symbolic</property>
+                <property name="valign">center</property>
+                <property name="action-name">link.open-gnome-rounded-blur</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwSpinRow" id="corner_radius_row">
+            <property name="title" translatable="yes">Corner radius</property>
+            <property name="subtitle" translatable="yes">Radius for the corner rounding effect.</property>
+            <property name="adjustment">corner_radius</property>
+            <property name="sensitive" bind-source="blur" bind-property="state" bind-flags="sync-create" />
+          </object>
+        </child>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup">
+        <property name="title" translatable="yes">Overlay targets</property>
+        <property name="description" translatable="yes">Choose which GNOME Shell overlays use the shared blur profile.</property>
+
+        <child>
+          <object class="AdwActionRow">
+            <property name="title" translatable="yes">Date and calendar menu</property>
+            <property name="subtitle" translatable="yes">The top-bar calendar popover and its menu content.</property>
+            <property name="activatable-widget">date_menu</property>
+
+            <child>
+              <object class="GtkSwitch" id="date_menu">
+                <property name="valign">center</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwActionRow">
+            <property name="title" translatable="yes">Quick Settings</property>
+            <property name="subtitle" translatable="yes">The system menu opened from the top bar.</property>
+            <property name="activatable-widget">quick_settings</property>
+
+            <child>
+              <object class="GtkSwitch" id="quick_settings">
+                <property name="valign">center</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwActionRow">
+            <property name="title" translatable="yes">Notifications</property>
+            <property name="subtitle" translatable="yes">Notification banners and the notification list inside the calendar popover.</property>
+            <property name="activatable-widget">notifications</property>
+
+            <child>
+              <object class="GtkSwitch" id="notifications">
+                <property name="valign">center</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwActionRow">
+            <property name="title" translatable="yes">OSD overlays</property>
+            <property name="subtitle" translatable="yes">Volume, brightness, and other on-screen display popups.</property>
+            <property name="activatable-widget">osd</property>
+
+            <child>
+              <object class="GtkSwitch" id="osd">
+                <property name="valign">center</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwActionRow">
+            <property name="title" translatable="yes">Desktop context menus</property>
+            <property name="subtitle" translatable="yes">Menus opened from the desktop background.</property>
+            <property name="activatable-widget">desktop_menus</property>
+
+            <child>
+              <object class="GtkSwitch" id="desktop_menus">
+                <property name="valign">center</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
+          <object class="AdwActionRow">
+            <property name="title" translatable="yes">App and jump-list menus</property>
+            <property name="subtitle" translatable="yes">Application menus and window lists opened from Shell popups.</property>
+            <property name="activatable-widget">app_menus</property>
+
+            <child>
+              <object class="GtkSwitch" id="app_menus">
+                <property name="valign">center</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+
+  <object class="GtkAdjustment" id="sigma">
+    <property name="lower">0</property>
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+  </object>
+
+  <object class="GtkAdjustment" id="brightness">
+    <property name="lower">0.0</property>
+    <property name="upper">1.0</property>
+    <property name="step-increment">0.01</property>
+  </object>
+
+  <object class="GtkAdjustment" id="corner_radius">
+    <property name="lower">0</property>
+    <property name="upper">50</property>
+    <property name="step-increment">1</property>
+  </object>
+
+  <object class="GtkAdjustment" id="refraction_strength">
+    <property name="lower">0.0</property>
+    <property name="upper">2.0</property>
+    <property name="step-increment">0.01</property>
+  </object>
+
+  <object class="GtkAdjustment" id="refraction_radius">
+    <property name="lower">0</property>
+    <property name="upper">50</property>
+    <property name="step-increment">1</property>
+  </object>
+
+  <object class="GtkAdjustment" id="refraction_inner_radius">
+    <property name="lower">0</property>
+    <property name="upper">50</property>
+    <property name="step-increment">1</property>
+  </object>
+</interface>

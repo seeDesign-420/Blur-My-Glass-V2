@@ -10,7 +10,7 @@ pkgname=(
   gnome-shell-blur-my-glass-docs
 )
 pkgver=50.0
-pkgrel=1
+pkgrel=2
 epoch=1
 pkgdesc="GNOME Shell with rounded blur and liquid glass support for blur-my-glass"
 url="https://github.com/seeDesign-420/blur-my-glass"
@@ -134,6 +134,7 @@ build() {
 
 package_gnome-shell-blur-my-glass() {
   provides=('gnome-shell')
+  replaces=('gnome-shell-rounded-blur')
   conflicts=('gnome-shell' 'gnome-shell-debug')
   depends+=(libmutter-18.so)
   optdepends=(
@@ -163,6 +164,8 @@ END
 
 package_gnome-shell-blur-my-glass-docs() {
   pkgdesc+=" (API documentation)"
+  replaces=('gnome-shell-rounded-blur-docs')
+  conflicts=('gnome-shell-rounded-blur-docs')
   depends=()
 
   mv doc/* "$pkgdir"

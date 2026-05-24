@@ -15,15 +15,17 @@ Enable frosted-glass blur with proper rounded corners on GNOME/Wayland — somet
 - **Consumers:** blur-my-shell extension (sets `corner-radius` property via GObject)
 - **Two patch variants:** rounded corners mask (stable) and liquid glass compositor (experimental)
 
-## Current Milestone: v1.0 — Anti-Aliased Unified Patches
+## Current Milestone: v1.2 — Broad Shell Overlay Glass
 
-**Goal:** Fix aliased SDF mask edges in the rounded corners patch and restructure both patches into a stacked base + overlay system.
+**Goal:** Add blur/glass treatment to broad GNOME Shell overlays that currently show unblurred or poorly integrated backgrounds.
 
 **Target features:**
-- Anti-aliased rounded corners using `smoothstep()` + `fwidth()` instead of `step()`
-- Correct SDF box distance function (add missing interior term)
-- Stacked patch architecture: base patch (mask) + overlay patch (refraction)
-- Single source of truth for shared mask logic
+- Date/calendar menu glass blur
+- Quick Settings glass blur
+- Notification banners and notification list glass blur
+- OSD glass blur
+- Desktop context menu glass blur
+- Application and jump-list menu glass blur where technically feasible
 
 ## Key Decisions
 
@@ -33,10 +35,12 @@ Enable frosted-glass blur with proper rounded corners on GNOME/Wayland — somet
 | SDF-based masking | Anti-aliased rounded corners without texture-based masks |
 | Cogl snippet injection | Uses `COGL_SNIPPET_HOOK_TEXTURE_LOOKUP` for UV-level refraction |
 | Stacked patches (v1.0) | Eliminates duplicated mask logic, simplifies maintenance |
+| Repair current `ShellBlurEffect` patch (v1.1) | Keeps compositor-level integration and avoids a wholesale port to a separate `Clutter.ShaderEffect` stack |
+| Broad overlay-first rollout (v1.2) | Prioritizes visible GNOME shell surfaces with highest user impact before vibrancy tuning |
 
 ## Active Requirements
 
-See `REQUIREMENTS.md` for v1.0 requirements.
+See `REQUIREMENTS.md` for v1.2 requirements.
 
 ## Validated Requirements
 
@@ -47,6 +51,7 @@ See `REQUIREMENTS.md` for v1.0 requirements.
 - Multi-distro support (Arch-only for now)
 - Runtime shader switching (patches are compile-time)
 - Upstream contribution (patches are too invasive for upstream)
+- Full port of the reference `liquid-glass` extension shader stack during v1.2
 
 ## Evolution
 
@@ -65,4 +70,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-24*
+*Last updated: 2026-05-22*

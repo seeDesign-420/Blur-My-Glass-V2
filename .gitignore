@@ -1,5 +1,5 @@
 # makepkg build artifacts
-src/
+/src/
 pkg/
 build/
 extension/build/

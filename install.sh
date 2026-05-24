@@ -111,6 +111,22 @@ if [[ "$CLEAN" == true ]]; then
   ok "Clean complete"
 fi
 
+# Remove the older package name before building the replacement.
+if [[ "$INSTALL_SHELL" == true ]]; then
+  OLD_PKGS=()
+  if pacman -Qq gnome-shell-rounded-blur &>/dev/null; then
+    OLD_PKGS+=(gnome-shell-rounded-blur)
+  fi
+  if pacman -Qq gnome-shell-rounded-blur-docs &>/dev/null; then
+    OLD_PKGS+=(gnome-shell-rounded-blur-docs)
+  fi
+
+  if [[ ${#OLD_PKGS[@]} -gt 0 ]]; then
+    warn "Removing conflicting old package(s): ${OLD_PKGS[*]}"
+    sudo pacman -Rdd --noconfirm "${OLD_PKGS[@]}"
+  fi
+fi
+
 # ── Build shell package ────────────────────────────────────────────────────
 if [[ "$INSTALL_SHELL" == true ]]; then
   info "Installing makedepends (if needed)..."

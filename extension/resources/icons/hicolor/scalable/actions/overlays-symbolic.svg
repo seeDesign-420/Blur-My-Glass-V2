@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <defs>
+    <style type="text/css">.ColorScheme-Text{color:#363636;}</style>
+  </defs>
+  <g fill="currentColor" class="ColorScheme-Text">
+    <rect x="2" y="2" width="9" height="7" rx="1.2" ry="1.2" opacity="0.45"/>
+    <rect x="5" y="6" width="9" height="7" rx="1.2" ry="1.2"/>
+    <rect x="3.5" y="3.5" width="2" height="1.2" rx="0.6" ry="0.6" opacity="0.8"/>
+    <rect x="3.5" y="6" width="4" height="1.2" rx="0.6" ry="0.6" opacity="0.8"/>
+  </g>
+</svg>

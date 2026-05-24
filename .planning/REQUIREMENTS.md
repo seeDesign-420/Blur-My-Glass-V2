@@ -1,46 +1,52 @@
-# Requirements — v1.0 Anti-Aliased Unified Patches
+# Requirements - v1.2 Broad Shell Overlay Glass
 
-## SDF Quality
+## Overlay Coverage
 
-- [ ] **SDF-01**: Rounded corners mask uses correct box SDF with interior term (`min(max(q.x, q.y), 0.0) + length(max(q, vec2(0.0))) - radius`)
-- [ ] **SDF-02**: Mask edges are anti-aliased using `smoothstep()` with screen-space derivative width via `fwidth()`
-- [ ] **SDF-03**: Anti-aliasing width has a minimum floor to prevent pixel-thin artifacts on large surfaces
+- [ ] **OVR-01**: Date/calendar menu renders blur/glass background that tracks menu geometry and animation without clipping artifacts.
+- [ ] **OVR-02**: Quick Settings menu renders blur/glass background with correct placement and rounded edge behavior.
+- [ ] **OVR-03**: Notification banners and notification list render blur/glass background without interfering with message tray behavior.
+- [ ] **OVR-04**: OSD overlays render blur/glass treatment with clean lifecycle and no stuck actors.
+- [ ] **OVR-05**: Desktop context menus render blur/glass treatment where actor structure allows safe injection.
+- [ ] **OVR-06**: Application and jump-list menus render blur/glass treatment where technically feasible.
 
-## Patch Architecture
+## Lifecycle and Stability
 
-- [ ] **PATCH-01**: A base patch exists containing only the shared mask infrastructure (SDF mask, `corner-radius` property, `mask_fb` FBO pass)
-- [ ] **PATCH-02**: A liquid glass overlay patch exists that applies on top of the base patch, adding refraction, specular, and lighting
-- [ ] **PATCH-03**: Both patch variants build successfully against GNOME Shell 50.0
-- [ ] **PATCH-04**: Base patch preserves upstream GNOME Shell code style (no reformatting of unchanged lines)
+- [ ] **LIFE-01**: Overlay blur actors are attached and detached cleanly on open/close and session mode transitions.
+- [ ] **LIFE-02**: No actor leaks, orphaned effects, or recurring signal handlers after repeated menu open/close cycles.
+- [ ] **LIFE-03**: Overlay implementation tolerates GNOME Shell actor-tree timing/reparenting without crashes.
 
-## Verification
+## Configuration and UX
 
-- [ ] **VFY-01**: Rounded corners render with smooth, alias-free edges at all tested corner radii (0, 12, 24, 48 px)
-- [ ] **VFY-02**: Liquid glass variant renders identically to current behavior (no regression)
-- [ ] **VFY-03**: `install.sh` works with both `--liquid-glass` and default modes using the new stacked patches
+- [ ] **CFG-01**: Overlay blur behavior is configurable through extension settings using existing component conventions where possible.
+- [ ] **CFG-02**: Default settings preserve readability and avoid obvious visual regressions on light and dark backgrounds.
+- [ ] **CFG-03**: Existing blur components (panel, dash, applications, dhruva, lockscreen, etc.) continue to work unchanged.
 
 ## Future Requirements
 
-- GLSL uniform for per-corner radius control (different radius per corner)
-- Runtime patch variant switching without rebuild
+- Brightness/vibrancy tuning with stronger perceived glass effect while preserving text clarity.
+- Additional per-overlay customization depth if required after baseline v1.2 coverage ships.
+- Potential deeper adoption of `liquid-glass` adaptive text/tint techniques after baseline stabilization.
 
 ## Out of Scope
 
-- Refraction shader changes (liquid glass rendering logic stays as-is)
-- Multi-distro packaging (remains Arch-only)
-- Upstream GNOME contribution
+- Full replacement of the current architecture with a pure `Clutter.ShaderEffect` clone-based stack in v1.2.
+- New compositor C patch architecture changes beyond what is needed to keep overlay rendering stable.
+- Multi-distro packaging.
+- Runtime patch variant switching without rebuild.
 
 ## Traceability
 
 | REQ | Phase | Status |
 |-----|-------|--------|
-| SDF-01 | 1 | Pending |
-| SDF-02 | 1 | Pending |
-| SDF-03 | 1 | Pending |
-| PATCH-01 | 2 | Pending |
-| PATCH-02 | 2 | Pending |
-| PATCH-03 | 2 | Pending |
-| PATCH-04 | 2 | Pending |
-| VFY-01 | 3 | Pending |
-| VFY-02 | 3 | Pending |
-| VFY-03 | 3 | Pending |
+| OVR-01 | 8 | Pending |
+| OVR-02 | 8 | Pending |
+| OVR-03 | 8 | Pending |
+| OVR-04 | 8 | Pending |
+| OVR-05 | 8 | Pending |
+| OVR-06 | 8 | Pending |
+| LIFE-01 | 8 | Pending |
+| LIFE-02 | 8 | Pending |
+| LIFE-03 | 8 | Pending |
+| CFG-01 | 8 | Pending |
+| CFG-02 | 8 | Pending |
+| CFG-03 | 8 | Pending |

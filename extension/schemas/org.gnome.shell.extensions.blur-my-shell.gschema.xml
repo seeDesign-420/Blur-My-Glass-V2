@@ -96,6 +96,7 @@
         </key>
 
         <child name='overview' schema='org.gnome.shell.extensions.blur-my-shell.overview'></child>
+        <child name='overlays' schema='org.gnome.shell.extensions.blur-my-shell.overlays'></child>
         <child name='appfolder' schema='org.gnome.shell.extensions.blur-my-shell.appfolder'></child>
         <child name='panel' schema='org.gnome.shell.extensions.blur-my-shell.panel'></child>
         <child name='dash-to-dock' schema='org.gnome.shell.extensions.blur-my-shell.dash-to-dock'></child>
@@ -156,6 +157,86 @@
         <key type="i" name="style-components">
             <default>1</default>
             <summary>Enum to select the style of the components in overview (0 not styled, 1 light, 2 dark, 3 transparent)</summary>
+        </key>
+    </schema>
+
+    <!-- OVERLAYS -->
+    <schema id="org.gnome.shell.extensions.blur-my-shell.overlays"
+        path="/org/gnome/shell/extensions/blur-my-shell/overlays/">
+        <!-- BLUR -->
+        <key type="b" name="blur">
+            <default>true</default>
+            <summary>Boolean, whether to blur activate the blur for this component or not</summary>
+        </key>
+        <!-- STATIC BLUR -->
+        <key type="b" name="static-blur">
+            <default>false</default>
+            <summary>Boolean, whether to use static or dynamic blur for this component</summary>
+        </key>
+        <!-- PIPELINE -->
+        <key type="s" name="pipeline">
+            <default>"pipeline_default"</default>
+            <summary>String, the name of the pipeline to use. It must exist, else "pipeline_default" will be used</summary>
+        </key>
+        <!-- SIGMA -->
+        <key type="i" name="sigma">
+            <default>30</default>
+            <summary>Gaussian sigma to use for the blur effect</summary>
+        </key>
+        <!-- BRIGHTNESS -->
+        <key type="d" name="brightness">
+            <default>0.6</default>
+            <summary>Brightness to use for the blur effect</summary>
+        </key>
+        <!-- CORNER RADIUS -->
+        <key type="i" name="corner-radius">
+            <default>24</default>
+            <summary>Radius for the corner rounding effect</summary>
+        </key>
+        <!-- REFRACTION STRENGTH -->
+        <key type="d" name="refraction-strength">
+            <default>0.45</default>
+            <summary>Strength of the liquid glass refraction effect</summary>
+        </key>
+        <!-- REFRACTION RADIUS -->
+        <key type="i" name="refraction-radius">
+            <default>24</default>
+            <summary>Radius for the liquid glass refraction effect</summary>
+        </key>
+        <!-- REFRACTION INNER RADIUS -->
+        <key type="i" name="refraction-inner-radius">
+            <default>24</default>
+            <summary>Additional inner corner rounding for the liquid glass refraction effect</summary>
+        </key>
+        <!-- DATE MENU -->
+        <key type="b" name="date-menu">
+            <default>true</default>
+            <summary>Boolean, whether to blur the date and calendar menu or not</summary>
+        </key>
+        <!-- QUICK SETTINGS -->
+        <key type="b" name="quick-settings">
+            <default>true</default>
+            <summary>Boolean, whether to blur the quick settings menu or not</summary>
+        </key>
+        <!-- NOTIFICATIONS -->
+        <key type="b" name="notifications">
+            <default>true</default>
+            <summary>Boolean, whether to blur notification banners and the notification list or not</summary>
+        </key>
+        <!-- OSD -->
+        <key type="b" name="osd">
+            <default>true</default>
+            <summary>Boolean, whether to blur OSD overlays or not</summary>
+        </key>
+        <!-- DESKTOP MENUS -->
+        <key type="b" name="desktop-menus">
+            <default>false</default>
+            <summary>Boolean, whether to blur desktop context menus or not</summary>
+        </key>
+        <!-- APP MENUS -->
+        <key type="b" name="app-menus">
+            <default>false</default>
+            <summary>Boolean, whether to blur application and jump-list menus or not</summary>
         </key>
     </schema>
 
