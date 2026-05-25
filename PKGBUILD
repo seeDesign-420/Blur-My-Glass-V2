@@ -86,14 +86,14 @@ makedepends=(
 source=(
   # GNOME Shell tags use SSH signatures which makepkg doesn't understand
   "git+https://gitlab.gnome.org/GNOME/gnome-shell.git#tag=${pkgver/[a-z]/.&}"
-  "git+https://gitlab.gnome.org/GNOME/libgnome-volume-control.git#commit=664eba4c054ecc4a140f0ef01ae9297422b71fdc"
+  "git+https://gitlab.gnome.org/GNOME/libgnome-volume-control.git#commit=d2442f455844e5292cb4a74ffc66ecc8d7595a9f"
   "git+https://github.com/ptomato/jasmine-gjs.git#commit=856465dddbd92e82e574891e1ebc79e17d7b708a"
-  "git+https://gitlab.gnome.org/GNOME/libshew.git#commit=ed782477cb5164320ae4f731d49bc5d475ab2a52"
+  "git+https://gitlab.gnome.org/GNOME/libshew.git#commit=d16afc40412b565d2bbecf80335f54a19a978009"
 )
 b2sums=('1dc5c04956466cf3d98498defdac415dbf54f2e49fd7f84e9c4e95ae20154a11a39101f834993d03ae306bad310787829e329f6420c3114a5ceadfc811a147cc'
-        '535b45732b09204639930a88f6578f5d3e81239aed857c12cf084351a6ecd45fff262da6ff9f74ac48d1d7a92b1a90dbe708a4e8131f789aace7e27482220a9a'
+        '8995bd33c011045c391169f044a46dbe42c55219d22fc1f52ec360b9cfb63b7b3a91bb07abb0f22ec7da39825a096bfa5fff9a5080d4d3919286156aeac392e5'
         'ecbbb9ce5895cc1caed2ddef39c70b4768d78ea0a929ea932d4149f923f92650973cdaefc2aacc9063f2ccf4ec965b57a9698a286f9a6561e39ce2e579ae4522'
-        'ec120324e4fe90fb8017847e5eda3c0b181b6609b78610b3a61ea106ee4d56d2b3bf243c3bc5d3ddd59fe55bb5ceed4f55b41f09626137027ed1c3e27930d082')
+        '7b39ef786d0af34f207c36c078fda5410848a5eceb84509b145184be1dbb994aeb3ffa70cb3de363a8460d59c140aafbdee8f74312cf2971a80cc5d485f1b829')
 
 prepare() {
   # Inject gvc

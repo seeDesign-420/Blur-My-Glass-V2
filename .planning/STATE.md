@@ -26,7 +26,6 @@ progress:
 
 - `v1.0` - Anti-Aliased Unified Patches
   - Previous work, verification pending
-  - Phase 6 is implemented, but schema compilation and session restart verification are still pending
 - `v1.1` - Refraction Edge Anti-Aliasing
   - Previous work, verification pending
   - Patch update is applied, but runtime visual verification is still pending
@@ -59,4 +58,4 @@ progress:
 
 ### Roadmap Evolution
 
-- Phase 6 added: Dhruva dock integration - blur/glass effects for the Dhruva dock extension
+- Earlier milestone work was consolidated into the stacked patch architecture and is no longer part of the active v1.2 planning scope

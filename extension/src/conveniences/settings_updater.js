@@ -1,7 +1,7 @@
 import { Settings } from './settings.js';
 import { KEYS, DEPRECATED_KEYS } from './keys.js';
 
-const CURRENT_SETTINGS_VERSION = 6;
+const CURRENT_SETTINGS_VERSION = 7;
 
 export function update_from_old_settings(gsettings) {
     const preferences = new Settings(KEYS, gsettings);

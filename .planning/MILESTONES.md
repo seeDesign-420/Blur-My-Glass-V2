@@ -4,7 +4,7 @@
 
 | Version | Name | Status | Notes |
 |---------|------|--------|-------|
-| v1.0 | Anti-Aliased Unified Patches | Previous work, verification pending | Phases 1-6 exist; Phase 6 is implemented but still needs schema compilation and session restart verification. |
+| v1.0 | Anti-Aliased Unified Patches | Previous work, verification pending | Earlier patch phases exist; verification is still pending. |
 | v1.1 | Refraction Edge Anti-Aliasing | Previous work, verification pending | Patch update applied and prepare checks pass; runtime visual verification still pending. |
 | v1.2 | Broad Shell Overlay Glass | Active | Add blur/glass treatment to broad GNOME Shell overlays using `liquid-glass` as a reference project. |
 | v1.3 | Vibrant Brightness Tuning | Upcoming | Improve perceived brightness and vibrancy beyond the current multiplicative brightness control. |
@@ -21,9 +21,6 @@
 - Phase 3: Actor coverage audit
 - Phase 4: BoxPointer blur component
 - Phase 5: Build verification
-- Phase 6: Dhruva dock integration
-
-**Pending:** Phase 6 still needs schema compilation and session restart verification according to `STATE.md`.
 
 ## v1.1 - Refraction Edge Anti-Aliasing
 

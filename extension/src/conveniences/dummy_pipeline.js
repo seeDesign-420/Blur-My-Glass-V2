@@ -9,6 +9,7 @@ export const DummyPipeline = class DummyPipeline {
         this.settings = settings;
         this.effect_overrides = effect_overrides;
         this.effect = null;
+        this.vibrancy_effect = null;
         this.attach_effect_to_actor(actor);
     }
 
@@ -47,23 +48,28 @@ export const DummyPipeline = class DummyPipeline {
         }
 
         // build the new effect to be added
-        this.build_effect({
+        const params = {
             unscaled_radius: 2 * this.settings.SIGMA,
             brightness: this.settings.BRIGHTNESS,
-            corner_radius: this.settings.CORNER_RADIUS,
+            vibrancy: this.settings.VIBRANCY ?? 0,
             refraction_strength: this.effect_overrides.refraction_strength ?? this.settings.REFRACTION_STRENGTH ?? 0,
             refraction_radius: this.settings.REFRACTION_RADIUS ?? 24,
             refraction_inner_radius: this.settings.REFRACTION_INNER_RADIUS ?? 24,
-        });
+        };
+        if (this.settings.CORNER_RADIUS !== undefined)
+            params.corner_radius = this.settings.CORNER_RADIUS;
+
+        this.build_effect(params);
 
         this.actor_destroy_id = this.actor.connect(
             "destroy", () => this.remove_pipeline_from_actor()
         );
 
         // add the effect to the actor
-        if (this.actor)
+        if (this.actor) {
             this.actor.add_effect(this.effect);
-        else
+            this.actor.add_effect(this.vibrancy_effect);
+        } else
             this._warn(`could not add effect to actor, actor does not exist anymore`);
     }
 
@@ -78,13 +84,25 @@ export const DummyPipeline = class DummyPipeline {
     build_effect(params) {
         const resolved_sigma = this._resolveSigma();
         const resolved_brightness = this._resolveBrightness();
-        const resolved_corner_radius = this._resolveCornerRadius();
-        const resolved_refraction_strength = this._resolveRefractionStrength();
-        const resolved_refraction_radius = this._resolveRefractionRadius();
-        const resolved_refraction_inner_radius = this._resolveRefractionInnerRadius();
+        const resolved_vibrancy = this._resolveVibrancy();
+        const resolved_corner_radius = this.settings.CORNER_RADIUS !== undefined ?
+            this._resolveCornerRadius() :
+            0;
+        const resolved_refraction_strength = this.settings.REFRACTION_STRENGTH !== undefined ?
+            this._resolveRefractionStrength() :
+            0;
+        const resolved_refraction_radius = this.settings.REFRACTION_RADIUS !== undefined ?
+            this._resolveRefractionRadius() :
+            24;
+        const resolved_refraction_inner_radius = this.settings.REFRACTION_INNER_RADIUS !== undefined ?
+            this._resolveRefractionInnerRadius() :
+            24;
 
         // create the effect
         this.effect = this.effects_manager.new_native_dynamic_gaussian_blur_effect(params);
+        this.vibrancy_effect = this.effects_manager.new_luminosity_effect({
+            saturation_multiplicator: 1 + resolved_vibrancy,
+        });
 
         // connect to settings changes, using the true gsettings object
         this._sigma_changed_id = this.settings.settings.connect(
@@ -93,9 +111,14 @@ export const DummyPipeline = class DummyPipeline {
         this._brightness_changed_id = this.settings.settings.connect(
             'changed::brightness', () => this.effect.brightness = this._resolveBrightness()
         );
-        this._corner_radius_changed_id = this.settings.settings.connect(
-            'changed::corner-radius', () => this.effect.corner_radius = this._resolveCornerRadius()
+        this._vibrancy_changed_id = this.settings.settings.connect(
+            'changed::vibrancy', () => this._setVibrancy(this._resolveVibrancy())
         );
+        if (this.settings.CORNER_RADIUS !== undefined) {
+            this._corner_radius_changed_id = this.settings.settings.connect(
+                'changed::corner-radius', () => this.effect.corner_radius = this._resolveCornerRadius()
+            );
+        }
         if (this.settings.REFRACTION_STRENGTH !== undefined
             && !this.effect_overrides.manage_refraction_manually) {
             this._refraction_strength_changed_id = this.settings.settings.connect(
@@ -133,14 +156,20 @@ export const DummyPipeline = class DummyPipeline {
 
         this.effect.unscaled_radius = resolved_sigma;
         this.effect.brightness = resolved_brightness;
-        this.effect.corner_radius = resolved_corner_radius;
-        try {
-            this.effect.refraction_strength = resolved_refraction_strength;
-            this.effect.refraction_radius = resolved_refraction_radius;
-            this.effect.refraction_inner_radius = resolved_refraction_inner_radius;
-        } catch (e) {
-            if ((resolved_refraction_strength ?? 0) > 0)
-                console.warn(`[Blur my Shell > effect]       Shell.BlurEffect does not expose liquid-glass refraction: ${e}`);
+        this._setVibrancy(resolved_vibrancy);
+        if (this.settings.CORNER_RADIUS !== undefined)
+            this.effect.corner_radius = resolved_corner_radius;
+        if (this.settings.REFRACTION_STRENGTH !== undefined
+            || this.settings.REFRACTION_RADIUS !== undefined
+            || this.settings.REFRACTION_INNER_RADIUS !== undefined) {
+            try {
+                this.effect.refraction_strength = resolved_refraction_strength;
+                this.effect.refraction_radius = resolved_refraction_radius;
+                this.effect.refraction_inner_radius = resolved_refraction_inner_radius;
+            } catch (e) {
+                if ((resolved_refraction_strength ?? 0) > 0)
+                    console.warn(`[Blur my Shell > effect]       Shell.BlurEffect does not expose liquid-glass refraction: ${e}`);
+            }
         }
     }
 
@@ -161,6 +190,12 @@ export const DummyPipeline = class DummyPipeline {
         const base = this.settings.BRIGHTNESS;
         const multiplier = this.effect_overrides.brightness_multiplier ?? 1;
         return Math.min(1, Math.max(0, this._resolveOverrideValue('brightness', base * multiplier)));
+    }
+
+    _resolveVibrancy() {
+        const base = this.settings.VIBRANCY ?? 0;
+        const multiplier = this.effect_overrides.vibrancy_multiplier ?? 1;
+        return Math.min(1, Math.max(0, this._resolveOverrideValue('vibrancy', base * multiplier)));
     }
 
     _resolveCornerRadius() {
@@ -189,6 +224,14 @@ export const DummyPipeline = class DummyPipeline {
 
     repaint_effect() {
         this.effect?.queue_repaint();
+        this.vibrancy_effect?.queue_repaint();
+    }
+
+    _setVibrancy(vibrancy) {
+        if (this.effect)
+            this.effect.vibrancy = vibrancy;
+        if (this.vibrancy_effect)
+            this.vibrancy_effect.saturation_multiplicator = 1 + vibrancy;
     }
 
     /// Remove every effect from the actor it is attached to. Please note that they are not
@@ -196,12 +239,17 @@ export const DummyPipeline = class DummyPipeline {
     remove_effect() {
         if (this.effect)
             this.effects_manager.remove(this.effect);
+        if (this.vibrancy_effect)
+            this.effects_manager.remove(this.vibrancy_effect);
         this.effect = null;
+        this.vibrancy_effect = null;
 
         if (this._sigma_changed_id)
             this.settings.settings.disconnect(this._sigma_changed_id);
         if (this._brightness_changed_id)
             this.settings.settings.disconnect(this._brightness_changed_id);
+        if (this._vibrancy_changed_id)
+            this.settings.settings.disconnect(this._vibrancy_changed_id);
         if (this._corner_radius_changed_id)
             this.settings.settings.disconnect(this._corner_radius_changed_id);
         if (this._refraction_strength_changed_id)
@@ -212,6 +260,7 @@ export const DummyPipeline = class DummyPipeline {
             this.settings.settings.disconnect(this._refraction_inner_radius_changed_id);
         delete this._sigma_changed_id;
         delete this._brightness_changed_id;
+        delete this._vibrancy_changed_id;
         delete this._corner_radius_changed_id;
         delete this._refraction_strength_changed_id;
         delete this._refraction_radius_changed_id;

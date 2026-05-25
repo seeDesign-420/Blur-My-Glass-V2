@@ -6,7 +6,7 @@ const Shell = await utils.import_in_shell_only('gi://Shell');
 
 
 const DEFAULT_PARAMS = {
-    unscaled_radius: 30, brightness: 0.6, corner_radius: 14
+    unscaled_radius: 30, brightness: 0.6, vibrancy: 0.0, corner_radius: 14
 };
 
 
@@ -16,7 +16,7 @@ export const NativeDynamicBlurEffect = utils.IS_IN_PREFERENCES ?
         GTypeName: "NativeDynamicBlurEffect"
     }, class NativeDynamicBlurEffect extends Shell.BlurEffect {
         constructor(params) {
-            const { unscaled_radius, brightness, corner_radius, refraction_strength, refraction_radius, refraction_inner_radius, ...parent_params } = params;
+            const { unscaled_radius, brightness, vibrancy, corner_radius, refraction_strength, refraction_radius, refraction_inner_radius, ...parent_params } = params;
             super({ ...parent_params, mode: Shell.BlurMode.BACKGROUND });
 
             this._theme_context = St.ThemeContext.get_for_stage(global.stage);

@@ -17,6 +17,8 @@ export const Dash = GObject.registerClass({
         'sigma',
         'brightness_row',
         'brightness',
+        'vibrancy_row',
+        'vibrancy',
         'corner_radius_not_found_row',
         'corner_radius_row',
         'corner_radius',
@@ -63,6 +65,10 @@ export const Dash = GObject.registerClass({
             Gio.SettingsBindFlags.DEFAULT
         );
         this.preferences.dhruva.settings.bind(
+            'vibrancy', this._vibrancy, 'value',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+        this.preferences.dhruva.settings.bind(
             'corner-radius', this._corner_radius, 'value',
             Gio.SettingsBindFlags.DEFAULT
         );
@@ -91,6 +97,7 @@ export const Dash = GObject.registerClass({
         this._pipeline_choose_row.set_visible(false);
         this._sigma_row.set_visible(true);
         this._brightness_row.set_visible(true);
+        this._vibrancy_row.set_visible(true);
         this._refraction_strength_row.set_visible(true);
         this._refraction_radius_row.set_visible(this.preferences.ROUNDED_BLUR_FOUND);
         this._refraction_inner_radius_row.set_visible(this.preferences.ROUNDED_BLUR_FOUND);

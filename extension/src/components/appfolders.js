@@ -29,6 +29,7 @@ let original_zoomAndFadeIn = null;
 let original_zoomAndFadeOut = null;
 let sigma;
 let brightness;
+let vibrancy;
 
 let _zoomAndFadeIn = function () {
     let [sourceX, sourceY] =
@@ -50,10 +51,12 @@ let _zoomAndFadeIn = function () {
 
     blur_effect.radius = 0;
     blur_effect.brightness = 1.0;
+    blur_effect.vibrancy = 0.0;
     Tweener.addTween(blur_effect,
         {
             radius: sigma * 2,
             brightness: brightness,
+            vibrancy: vibrancy,
             time: adjustAnimationTime(FOLDER_DIALOG_ANIMATION_TIME / 1000),
             transition: 'easeOutQuad'
         }
@@ -98,6 +101,7 @@ let _zoomAndFadeOut = function () {
         {
             radius: 0,
             brightness: 1.0,
+            vibrancy: 0.0,
             time: adjustAnimationTime(FOLDER_DIALOG_ANIMATION_TIME / 1000),
             transition: 'easeInQuad'
         }
@@ -143,6 +147,7 @@ export const AppFoldersBlur = class AppFoldersBlur {
         this._log("blurring appfolders");
 
         brightness = this.settings.appfolder.BRIGHTNESS;
+        vibrancy = this.settings.appfolder.VIBRANCY ?? 0;
         sigma = this.settings.appfolder.SIGMA;
 
         let appDisplay = Main.overview._overview.controls._appDisplay;
@@ -176,6 +181,7 @@ export const AppFoldersBlur = class AppFoldersBlur {
                 name: "appfolder-blur",
                 radius: sigma * 2,
                 brightness: brightness,
+                vibrancy: vibrancy,
                 mode: Shell.BlurMode.BACKGROUND
             });
 
@@ -223,6 +229,12 @@ export const AppFoldersBlur = class AppFoldersBlur {
 
     set_brightness(b) {
         brightness = b;
+        if (this.settings.appfolder.BLUR)
+            this.blur_appfolders();
+    }
+
+    set_vibrancy(v) {
+        vibrancy = v;
         if (this.settings.appfolder.BLUR)
             this.blur_appfolders();
     }

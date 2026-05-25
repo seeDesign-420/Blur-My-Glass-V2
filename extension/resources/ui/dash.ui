@@ -109,6 +109,27 @@
         </child>
 
         <child>
+          <object class="AdwActionRow" id="vibrancy_row">
+            <property name="title" translatable="yes">Vibrancy</property>
+            <property name="subtitle" translatable="yes">Adds color richness while keeping the dock readable.</property>
+            <property name="activatable-widget">vibrancy_scale</property>
+            <property name="sensitive" bind-source="blur" bind-property="state" bind-flags="sync-create" />
+
+            <child>
+              <object class="GtkScale" id="vibrancy_scale">
+                <property name="valign">center</property>
+                <property name="hexpand">true</property>
+                <property name="width-request">200px</property>
+                <property name="draw-value">true</property>
+                <property name="value-pos">right</property>
+                <property name="digits">2</property>
+                <property name="adjustment">vibrancy</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        <child>
           <object class="AdwActionRow" id="corner_radius_not_found_row">
             <property name="title" translatable="yes">Corner radius</property>
             <property name="subtitle" translatable="yes">In order to use rounded corners, please install the GNOME Rounded Blur library.</property>
@@ -226,7 +247,13 @@
     <property name="upper">1.0</property>
     <property name="step-increment">0.01</property>
   </object>
-  
+
+  <object class="GtkAdjustment" id="vibrancy">
+    <property name="lower">0.0</property>
+    <property name="upper">1.0</property>
+    <property name="step-increment">0.01</property>
+  </object>
+
   <object class="GtkAdjustment" id="corner_radius">
     <property name="lower">0</property>
     <property name="upper">150</property>

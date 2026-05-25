@@ -59,6 +59,11 @@
             <default>0.6</default>
             <summary>Global brightness to use</summary>
         </key>
+        <!-- VIBRANCY -->
+        <key type="d" name="vibrancy">
+            <default>0.</default>
+            <summary>Global vibrancy to use</summary>
+        </key>
         <!-- COLOR -->
         <key type="(dddd)" name="color">
             <default>(0.,0.,0.,0.)</default>
@@ -138,6 +143,11 @@
             <default>0.6</default>
             <summary>Brightness to use for the blur effect</summary>
         </key>
+        <!-- VIBRANCY -->
+        <key type="d" name="vibrancy">
+            <default>0.</default>
+            <summary>Vibrancy to use for the blur effect</summary>
+        </key>
         <!-- COLOR -->
         <key type="(dddd)" name="color">
             <default>(0.,0.,0.,0.)</default>
@@ -187,6 +197,11 @@
         <key type="d" name="brightness">
             <default>0.6</default>
             <summary>Brightness to use for the blur effect</summary>
+        </key>
+        <!-- VIBRANCY -->
+        <key type="d" name="vibrancy">
+            <default>0.</default>
+            <summary>Vibrancy to use for the blur effect</summary>
         </key>
         <!-- CORNER RADIUS -->
         <key type="i" name="corner-radius">
@@ -263,6 +278,11 @@
             <default>0.6</default>
             <summary>Brightness to use for the blur effect</summary>
         </key>
+        <!-- VIBRANCY -->
+        <key type="d" name="vibrancy">
+            <default>0.</default>
+            <summary>Vibrancy to use for the blur effect</summary>
+        </key>
         <!-- COLOR -->
         <key type="(dddd)" name="color">
             <default>(0.,0.,0.,0.)</default>
@@ -312,6 +332,11 @@
         <key type="d" name="brightness">
             <default>0.6</default>
             <summary>Brightness to use for the blur effect</summary>
+        </key>
+        <!-- VIBRANCY -->
+        <key type="d" name="vibrancy">
+            <default>0.</default>
+            <summary>Vibrancy to use for the blur effect</summary>
         </key>
         <!-- CORNER RADIUS -->
         <key type="i" name="corner-radius">
@@ -393,6 +418,11 @@
             <default>0.6</default>
             <summary>Brightness to use for the blur effect</summary>
         </key>
+        <!-- VIBRANCY -->
+        <key type="d" name="vibrancy">
+            <default>0.</default>
+            <summary>Vibrancy to use for the blur effect</summary>
+        </key>
         <!-- COLOR -->
         <key type="(dddd)" name="color">
             <default>(0.,0.,0.,0.)</default>
@@ -468,6 +498,11 @@
             <default>1.</default>
             <summary>Brightness to use for Dhruva dock blur</summary>
         </key>
+        <!-- VIBRANCY -->
+        <key type="d" name="vibrancy">
+            <default>0.</default>
+            <summary>Vibrancy to use for Dhruva dock blur</summary>
+        </key>
         <!-- CORNER RADIUS -->
         <key type="i" name="corner-radius">
             <default>24</default>
@@ -522,6 +557,11 @@
         <key type="d" name="brightness">
             <default>1.</default>
             <summary>Brightness to use for the blur effect</summary>
+        </key>
+        <!-- VIBRANCY -->
+        <key type="d" name="vibrancy">
+            <default>0.</default>
+            <summary>Vibrancy to use for the blur effect</summary>
         </key>
         <!-- REFRACTION STRENGTH -->
         <key type="d" name="refraction-strength">
@@ -623,6 +663,11 @@
             <default>0.6</default>
             <summary>Brightness to use for the blur effect</summary>
         </key>
+        <!-- VIBRANCY -->
+        <key type="d" name="vibrancy">
+            <default>0.</default>
+            <summary>Vibrancy to use for the blur effect</summary>
+        </key>
         <!-- COLOR -->
         <key type="(dddd)" name="color">
             <default>(0.,0.,0.,0.)</default>
@@ -668,6 +713,11 @@
             <default>0.6</default>
             <summary>Brightness to use for the blur effect</summary>
         </key>
+        <!-- VIBRANCY -->
+        <key type="d" name="vibrancy">
+            <default>0.</default>
+            <summary>Vibrancy to use for the blur effect</summary>
+        </key>
         <!-- COLOR -->
         <key type="(dddd)" name="color">
             <default>(0.,0.,0.,0.)</default>
@@ -712,6 +762,11 @@
         <key type="d" name="brightness">
             <default>0.6</default>
             <summary>Brightness to use for the blur effect</summary>
+        </key>
+        <!-- VIBRANCY -->
+        <key type="d" name="vibrancy">
+            <default>0.</default>
+            <summary>Vibrancy to use for the blur effect</summary>
         </key>
         <!-- COLOR -->
         <key type="(dddd)" name="color">

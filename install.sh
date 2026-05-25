@@ -77,6 +77,34 @@ if [[ "$INSTALL_EXTENSION" == true ]] && ! command -v gnome-extensions &>/dev/nu
   warn "gnome-extensions not found — extension installation may fail"
 fi
 
+# Prefer an auth helper that matches the current session.
+# - Interactive terminal: let makepkg use sudo/su normally.
+# - Desktop session without a tty: prefer pkexec so package installs can still prompt graphically.
+ROOT_AUTH=()
+if [[ "$INSTALL_SHELL" == true ]]; then
+  if [[ $EUID -ne 0 ]]; then
+    if [[ -t 0 ]]; then
+      ROOT_AUTH=(sudo)
+    elif [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
+      if ! command -v pkexec &>/dev/null; then
+        die "pkexec not found — this installer needs an interactive terminal or a desktop auth helper"
+      fi
+      ROOT_AUTH=(pkexec)
+      export PACMAN_AUTH=pkexec
+    else
+      die "Package installation needs an interactive terminal for sudo or a desktop session for pkexec"
+    fi
+  fi
+fi
+
+run_root() {
+  if [[ $EUID -eq 0 ]]; then
+    "$@"
+  else
+    "${ROOT_AUTH[@]}" "$@"
+  fi
+}
+
 # Verify patch files exist
 if [[ ! -f "patches/rounded_corners_mask.patch" ]]; then
   die "Base patch not found: patches/rounded_corners_mask.patch"
@@ -123,7 +151,7 @@ if [[ "$INSTALL_SHELL" == true ]]; then
 
   if [[ ${#OLD_PKGS[@]} -gt 0 ]]; then
     warn "Removing conflicting old package(s): ${OLD_PKGS[*]}"
-    sudo pacman -Rdd --noconfirm "${OLD_PKGS[@]}"
+    run_root pacman -Rdd --noconfirm "${OLD_PKGS[@]}"
   fi
 fi
 
@@ -142,7 +170,7 @@ if [[ "$INSTALL_SHELL" == true ]]; then
   if [[ ${#MISSING[@]} -gt 0 ]]; then
     warn "Missing makedepends: ${MISSING[*]}"
     info "Installing them now..."
-    sudo pacman -S --needed --noconfirm "${MISSING[@]}"
+    run_root pacman -S --needed --noconfirm "${MISSING[@]}"
   fi
 
   info "Building shell package with ${BOLD}${PATCH}${RESET} patch..."

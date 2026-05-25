@@ -15,6 +15,7 @@ export const Overview = GObject.registerClass({
         'appfolder_blur',
         'appfolder_sigma',
         'appfolder_brightness',
+        'appfolder_vibrancy',
         'appfolder_style_dialogs'
     ],
 }, class Overview extends Adw.PreferencesPage {
@@ -49,6 +50,10 @@ export const Overview = GObject.registerClass({
         );
         this.preferences.appfolder.settings.bind(
             'brightness', this._appfolder_brightness, 'value',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+        this.preferences.appfolder.settings.bind(
+            'vibrancy', this._appfolder_vibrancy, 'value',
             Gio.SettingsBindFlags.DEFAULT
         );
         this.preferences.appfolder.settings.bind(

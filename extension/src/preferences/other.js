@@ -17,6 +17,7 @@ export const Other = GObject.registerClass({
         'window_list_blur',
         'window_list_sigma',
         'window_list_brightness',
+        'window_list_vibrancy',
 
         'coverflow_alt_tab_blur',
         'coverflow_alt_tab_pipeline_choose_row',
@@ -61,6 +62,10 @@ export const Other = GObject.registerClass({
         );
         this.preferences.window_list.settings.bind(
             'brightness', this._window_list_brightness, 'value',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+        this.preferences.window_list.settings.bind(
+            'vibrancy', this._window_list_vibrancy, 'value',
             Gio.SettingsBindFlags.DEFAULT
         );
 

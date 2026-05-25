@@ -450,6 +450,14 @@ export default class BlurMyShell extends Extension {
                 );
         });
 
+        // appfolder vibrancy changed
+        this._settings.appfolder.VIBRANCY_changed(() => {
+            if (this._settings.appfolder.BLUR)
+                this._appfolder_blur.set_vibrancy(
+                    this._settings.appfolder.VIBRANCY
+                );
+        });
+
         // appfolder dialogs style changed
         this._settings.appfolder.STYLE_DIALOGS_changed(() => {
             if (this._settings.appfolder.BLUR)
