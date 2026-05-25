@@ -13,7 +13,7 @@
 +"  float r_shape = mix(1.0, r_transition, step(0.0001, r_strength));      \n"
 +"  cogl_color_out.rgb *= brightness * r_shape;                            \n"
 +"  cogl_color_out.a *= r_shape;                                           \n"
-+"  float v_amount = clamp(vibrancy, 0.0, 1.0);                            \n"
++"  float v_amount = clamp(vibrancy, 0.0, 2.0);                            \n"
 +"  vec3 v_gray = vec3(dot(cogl_color_out.rgb, vec3(0.299, 0.587, 0.114)));\n"
 +"  float v_luma = v_gray.r;                                               \n"
 +"  float v_midtones = 1.0 - abs(v_luma * 2.0 - 1.0);                     \n"
@@ -120,7 +120,7 @@
  
  static const gchar *mask_glsl_declarations =
  "uniform float u_corner_radius;                                            \n"
-@@ -98,10 +208,17 @@
+@@ -98,10 +205,17 @@
    FramebufferData background_fb;
    FramebufferData brightness_fb;
    int brightness_uniform;
@@ -138,7 +138,7 @@
  
    ShellBlurMode mode;
    float downscale_factor;
-@@ -109,6 +226,10 @@
+@@ -109,6 +223,10 @@
    int radius;
  
    float corner_radius;
@@ -149,7 +149,7 @@
  };
  
  G_DEFINE_TYPE (ShellBlurEffect, shell_blur_effect, CLUTTER_TYPE_EFFECT)
-@@ -119,6 +240,10 @@
+@@ -119,6 +237,10 @@
    PROP_BRIGHTNESS,
    PROP_MODE,
    PROP_CORNER_RADIUS,
@@ -160,7 +160,7 @@
    N_PROPS
  };
  
-@@ -169,6 +294,13 @@
+@@ -169,6 +291,13 @@
                                    brightness_glsl);
        cogl_pipeline_add_snippet (brightness_pipeline, snippet);
        g_object_unref (snippet);
@@ -174,7 +174,7 @@
      }
  
    return cogl_pipeline_copy (brightness_pipeline);
-@@ -210,6 +342,62 @@
+@@ -210,6 +339,62 @@
                                      self->brightness_uniform,
                                      self->brightness);
      }
@@ -237,7 +237,7 @@
  }
  
  static void
-@@ -840,6 +1028,22 @@
+@@ -840,6 +1025,22 @@
        g_value_set_float (value, self->corner_radius);
        break;
  
@@ -260,7 +260,7 @@
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
      }
-@@ -871,6 +1075,22 @@
+@@ -871,6 +1072,22 @@
        shell_blur_effect_set_corner_radius (self, g_value_get_float (value));
        break;
  
@@ -283,13 +283,13 @@
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
      }
-@@ -912,6 +1132,26 @@
+@@ -912,6 +1129,26 @@
                          0.f, G_MAXFLOAT, 0.f,
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
  
 +  properties[PROP_VIBRANCY] =
 +    g_param_spec_float ("vibrancy", NULL, NULL,
-+                        0.f, 1.f, 0.f,
++                        0.f, 2.f, 0.f,
 +                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 +
 +  properties[PROP_REFRACTION_STRENGTH] =
@@ -310,7 +310,7 @@
    g_object_class_install_properties (object_class, N_PROPS, properties);
  }
  
-@@ -922,6 +1162,10 @@
+@@ -922,6 +1159,10 @@
    self->radius = 0;
    self->brightness = 1.f;
    self->corner_radius = 0.f;
@@ -321,7 +321,7 @@
  
    self->actor_fb.pipeline = create_base_pipeline ();
    self->background_fb.pipeline = create_base_pipeline ();
-@@ -929,6 +1173,20 @@
+@@ -929,6 +1170,20 @@
    self->mask_fb.pipeline = create_mask_pipeline ();
    self->brightness_uniform =
      cogl_pipeline_get_uniform_location (self->brightness_fb.pipeline, "brightness");
@@ -342,7 +342,7 @@
    self->corner_radius_uniform =
      cogl_pipeline_get_uniform_location (self->mask_fb.pipeline, "u_corner_radius");
    self->mask_size_uniform =
-@@ -1055,3 +1313,111 @@
+@@ -1055,3 +1310,111 @@
  
    g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_CORNER_RADIUS]);
  }
@@ -360,7 +360,7 @@
 +{
 +  g_return_if_fail (SHELL_IS_BLUR_EFFECT (self));
 +
-+  vibrancy = CLAMP (vibrancy, 0.f, 1.f);
++  vibrancy = CLAMP (vibrancy, 0.f, 2.f);
 +
 +  if (self->vibrancy == vibrancy)
 +    return;

@@ -1,0 +1,68 @@
+makeStr(vibrantSecondaryText) _V _i _b _r _a _n _t __ _s _e _c _o _n _d _a _r _y __ _t _e _x _t _end
+makeStr(vibrantTertiaryText) _V _i _b _r _a _n _t __ _t _e _r _t _i _a _r _y __ _t _e _x _t _end
+makeStr(vibrantQuarternaryText) _V _i _b _r _a _n _t __ _q _u _a _r _t _e _r _n _a _r _y __ _t _e _x _t _end
+
+float rectangle(vec2 bottomLeft, vec2 topRight, float radius, vec2 coords) {
+    // Virtual circle center.
+    vec2 vcc = vec2(
+        clamp(coords.x, bottomLeft.x + radius, topRight.x - radius),
+        clamp(coords.y, bottomLeft.y + radius, topRight.y - radius)
+    );
+    return clamp((radius + 0.5 / iResolution.y - distance(coords, vcc)) * iResolution.y, 0., 1.);
+}
+
+vec3 blend(vec3 under, vec3 over, float alpha) {
+    return under * (1. - alpha) + over * alpha;
+}
+
+const float halfWidth = 8. / 9.;
+
+vec3 item(bool dark, int index, vec2 coords, vec3 backgroundColor, vec3 containerColor) {
+    float yOffset = float(index) * -0.2;
+    float alpha = 0.;
+    if (coords.x < 0.28) {
+        alpha = rectangle(vec2(0.17, 0.65 + yOffset), vec2(0.27, 0.75 + yOffset), 0.01, coords);
+    } else {
+        alpha
+            = index == 0 ? vibrantSecondaryText((coords - vec2(0.3, 0.678 + yOffset)) / 0.6)
+            : index == 1 ? vibrantTertiaryText((coords - vec2(0.3, 0.678 + yOffset)) / 0.6)
+            : vibrantQuarternaryText((coords - vec2(0.3, 0.678 + yOffset)) / 0.6);
+    }
+    vec3 blendColor = dark ? vec3(1.) : vec3(0.);
+    return blend(
+        containerColor,
+        blend(
+            backgroundColor,
+            blendColor,
+            dark
+                ? (index == 0 ? 0.6 : index == 1 ? 0.4 : 0.3)
+                : (index == 0 ? 0.4 : index == 1 ? 0.2 : 0.1)
+        ),
+        alpha
+    );
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoords) {
+    vec2 coords = fragCoords / iResolution.y;
+    bool dark = coords.x > halfWidth;
+    vec2 offset = dark ? vec2(halfWidth, 0.) : vec2(0., 0.);
+
+    vec3 color = texture(iChannel0, fragCoords / iResolution.xy).xyz;
+
+    float containerAlpha = rectangle(vec2(0.1, 0.1) + offset, vec2(halfWidth - 0.1, 0.9) + offset, 0.05, coords);
+    if (containerAlpha == 0.) {
+        fragColor = vec4(color, 1.);
+        return;
+    }
+    vec3 backgroundColor = blur(iChannel0, fragCoords / iResolution.xy, 1. / iChannelResolution[0].xy).xyz;
+    color = blend(
+        color,
+        blend(backgroundColor, dark ? vec3(0.25) : vec3(1.), 0.5),
+        containerAlpha
+    );
+    coords -= offset;
+    color = item(dark, 0, coords, backgroundColor, color);
+    color = item(dark, 1, coords, backgroundColor, color);
+    color = item(dark, 2, coords, backgroundColor, color);
+    fragColor = vec4(color, 1.);
+}

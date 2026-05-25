@@ -1,6 +1,8 @@
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 
+const VIBRANCY_INTENSITY_SCALE = 2;
+
 /// A dummy `Pipeline`, for dynamic blur only.
 /// Instead of a pipeline id, we take the settings of the component we want to blur.
 export const DummyPipeline = class DummyPipeline {
@@ -50,7 +52,7 @@ export const DummyPipeline = class DummyPipeline {
         const params = {
             unscaled_radius: 2 * this.settings.SIGMA,
             brightness: this.settings.BRIGHTNESS,
-            vibrancy: this.settings.VIBRANCY ?? 0,
+            vibrancy: this._mapVibrancySetting(this.settings.VIBRANCY ?? 0),
             refraction_strength: this.effect_overrides.refraction_strength ?? this.settings.REFRACTION_STRENGTH ?? 0,
             refraction_radius: this.settings.REFRACTION_RADIUS ?? 24,
             refraction_inner_radius: this.settings.REFRACTION_INNER_RADIUS ?? 24,
@@ -190,7 +192,12 @@ export const DummyPipeline = class DummyPipeline {
     _resolveVibrancy() {
         const base = this.settings.VIBRANCY ?? 0;
         const multiplier = this.effect_overrides.vibrancy_multiplier ?? 1;
-        return Math.min(1, Math.max(0, this._resolveOverrideValue('vibrancy', base * multiplier)));
+        const resolved = this._resolveOverrideValue('vibrancy', base * multiplier);
+        return this._mapVibrancySetting(resolved);
+    }
+
+    _mapVibrancySetting(vibrancy) {
+        return Math.min(VIBRANCY_INTENSITY_SCALE, Math.max(0, vibrancy * VIBRANCY_INTENSITY_SCALE));
     }
 
     _resolveCornerRadius() {

@@ -18,6 +18,7 @@ const transparent = Clutter.Color ?
         alpha: 0
     });
 const FOLDER_DIALOG_ANIMATION_TIME = 200;
+const VIBRANCY_INTENSITY_SCALE = 2;
 
 const DIALOGS_STYLES = [
     "appfolder-dialogs-transparent",
@@ -30,6 +31,10 @@ let original_zoomAndFadeOut = null;
 let sigma;
 let brightness;
 let vibrancy;
+
+function mapVibrancySetting(v) {
+    return Math.min(VIBRANCY_INTENSITY_SCALE, Math.max(0, v * VIBRANCY_INTENSITY_SCALE));
+}
 
 let _zoomAndFadeIn = function () {
     let [sourceX, sourceY] =
@@ -147,7 +152,7 @@ export const AppFoldersBlur = class AppFoldersBlur {
         this._log("blurring appfolders");
 
         brightness = this.settings.appfolder.BRIGHTNESS;
-        vibrancy = this.settings.appfolder.VIBRANCY ?? 0;
+        vibrancy = mapVibrancySetting(this.settings.appfolder.VIBRANCY ?? 0);
         sigma = this.settings.appfolder.SIGMA;
 
         let appDisplay = Main.overview._overview.controls._appDisplay;
@@ -234,7 +239,7 @@ export const AppFoldersBlur = class AppFoldersBlur {
     }
 
     set_vibrancy(v) {
-        vibrancy = v;
+        vibrancy = mapVibrancySetting(v);
         if (this.settings.appfolder.BLUR)
             this.blur_appfolders();
     }
