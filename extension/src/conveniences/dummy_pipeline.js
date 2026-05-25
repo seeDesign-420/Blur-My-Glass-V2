@@ -9,7 +9,6 @@ export const DummyPipeline = class DummyPipeline {
         this.settings = settings;
         this.effect_overrides = effect_overrides;
         this.effect = null;
-        this.vibrancy_effect = null;
         this.attach_effect_to_actor(actor);
     }
 
@@ -66,10 +65,9 @@ export const DummyPipeline = class DummyPipeline {
         );
 
         // add the effect to the actor
-        if (this.actor) {
+        if (this.actor)
             this.actor.add_effect(this.effect);
-            this.actor.add_effect(this.vibrancy_effect);
-        } else
+        else
             this._warn(`could not add effect to actor, actor does not exist anymore`);
     }
 
@@ -100,9 +98,6 @@ export const DummyPipeline = class DummyPipeline {
 
         // create the effect
         this.effect = this.effects_manager.new_native_dynamic_gaussian_blur_effect(params);
-        this.vibrancy_effect = this.effects_manager.new_luminosity_effect({
-            saturation_multiplicator: 1 + resolved_vibrancy,
-        });
 
         // connect to settings changes, using the true gsettings object
         this._sigma_changed_id = this.settings.settings.connect(
@@ -224,14 +219,11 @@ export const DummyPipeline = class DummyPipeline {
 
     repaint_effect() {
         this.effect?.queue_repaint();
-        this.vibrancy_effect?.queue_repaint();
     }
 
     _setVibrancy(vibrancy) {
         if (this.effect)
             this.effect.vibrancy = vibrancy;
-        if (this.vibrancy_effect)
-            this.vibrancy_effect.saturation_multiplicator = 1 + vibrancy;
     }
 
     /// Remove every effect from the actor it is attached to. Please note that they are not
@@ -239,10 +231,7 @@ export const DummyPipeline = class DummyPipeline {
     remove_effect() {
         if (this.effect)
             this.effects_manager.remove(this.effect);
-        if (this.vibrancy_effect)
-            this.effects_manager.remove(this.vibrancy_effect);
         this.effect = null;
-        this.vibrancy_effect = null;
 
         if (this._sigma_changed_id)
             this.settings.settings.disconnect(this._sigma_changed_id);

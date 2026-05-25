@@ -1,13 +1,22 @@
 --- a/src/shell-blur-effect.c
 +++ b/src/shell-blur-effect.c
-@@ -48,7 +48,112 @@
- "uniform float brightness;                                                 \n";
+@@ -45,10 +45,120 @@
+  */
+ 
+ static const gchar *brightness_glsl_declarations =
+-"uniform float brightness;                                                 \n";
++"uniform float brightness;                                                 \n"
++"uniform float vibrancy;                                                   \n";
  
  static const gchar *brightness_glsl =
 -"  cogl_color_out.rgb *= brightness;                                       \n";
 +"  float r_shape = mix(1.0, r_transition, step(0.0001, r_strength));      \n"
 +"  cogl_color_out.rgb *= brightness * r_shape;                            \n"
 +"  cogl_color_out.a *= r_shape;                                           \n"
++"  vec3 v_gray = vec3(dot(cogl_color_out.rgb, vec3(0.299, 0.587, 0.114)));\n"
++"  cogl_color_out.rgb = clamp(mix(cogl_color_out.rgb,                     \n"
++"                                 v_gray + (cogl_color_out.rgb - v_gray) * 1.8,\n"
++"                                 clamp(vibrancy, 0.0, 1.0)), 0.0, 1.0);  \n"
 +"  /* Border highlight from SDF */                                         \n"
 +"  cogl_color_out.rgb += vec3(r_border * r_transition * r_strength * 0.15);\n"
 +"  /* Vertical gradient for top-light gloss */                             \n"
@@ -114,7 +123,12 @@
  
  static const gchar *mask_glsl_declarations =
  "uniform float u_corner_radius;                                            \n"
-@@ -102,6 +201,12 @@
+@@ -98,10 +208,17 @@
+   FramebufferData background_fb;
+   FramebufferData brightness_fb;
+   int brightness_uniform;
++  int vibrancy_uniform;
+ 
    FramebufferData mask_fb;
    int corner_radius_uniform;
    int mask_size_uniform;
@@ -127,27 +141,29 @@
  
    ShellBlurMode mode;
    float downscale_factor;
-@@ -109,6 +214,9 @@
+@@ -109,6 +226,10 @@
    int radius;
  
    float corner_radius;
++  float vibrancy;
 +  float refraction_strength;
 +  float refraction_radius;
 +  float refraction_inner_radius;
  };
  
  G_DEFINE_TYPE (ShellBlurEffect, shell_blur_effect, CLUTTER_TYPE_EFFECT)
-@@ -119,6 +227,9 @@
+@@ -119,6 +240,10 @@
    PROP_BRIGHTNESS,
    PROP_MODE,
    PROP_CORNER_RADIUS,
++  PROP_VIBRANCY,
 +  PROP_REFRACTION_STRENGTH,
 +  PROP_REFRACTION_RADIUS,
 +  PROP_REFRACTION_INNER_RADIUS,
    N_PROPS
  };
  
-@@ -169,6 +280,13 @@
+@@ -169,6 +294,13 @@
                                    brightness_glsl);
        cogl_pipeline_add_snippet (brightness_pipeline, snippet);
        g_object_unref (snippet);
@@ -161,10 +177,15 @@
      }
  
    return cogl_pipeline_copy (brightness_pipeline);
-@@ -210,6 +328,57 @@
+@@ -210,6 +342,62 @@
                                      self->brightness_uniform,
                                      self->brightness);
      }
++
++  if (self->vibrancy_uniform > -1)
++    cogl_pipeline_set_uniform_1f (self->brightness_fb.pipeline,
++                                  self->vibrancy_uniform,
++                                  self->vibrancy);
 +
 +  if (self->refraction_strength_uniform > -1)
 +    cogl_pipeline_set_uniform_1f (self->brightness_fb.pipeline,
@@ -219,10 +240,14 @@
  }
  
  static void
-@@ -841,6 +1010,18 @@
+@@ -840,6 +1028,22 @@
        g_value_set_float (value, self->corner_radius);
        break;
  
++    case PROP_VIBRANCY:
++      g_value_set_float (value, self->vibrancy);
++      break;
++
 +    case PROP_REFRACTION_STRENGTH:
 +      g_value_set_float (value, self->refraction_strength);
 +      break;
@@ -238,10 +263,14 @@
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
      }
-@@ -872,6 +1053,18 @@
+@@ -871,6 +1075,22 @@
        shell_blur_effect_set_corner_radius (self, g_value_get_float (value));
        break;
  
++    case PROP_VIBRANCY:
++      shell_blur_effect_set_vibrancy (self, g_value_get_float (value));
++      break;
++
 +    case PROP_REFRACTION_STRENGTH:
 +      shell_blur_effect_set_refraction_strength (self, g_value_get_float (value));
 +      break;
@@ -257,10 +286,15 @@
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
      }
-@@ -913,6 +1106,21 @@
+@@ -912,6 +1132,26 @@
                          0.f, G_MAXFLOAT, 0.f,
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
  
++  properties[PROP_VIBRANCY] =
++    g_param_spec_float ("vibrancy", NULL, NULL,
++                        0.f, 1.f, 0.f,
++                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
++
 +  properties[PROP_REFRACTION_STRENGTH] =
 +    g_param_spec_float ("refraction-strength", NULL, NULL,
 +                        0.f, 2.f, 0.f,
@@ -279,20 +313,23 @@
    g_object_class_install_properties (object_class, N_PROPS, properties);
  }
  
-@@ -923,6 +1131,9 @@
+@@ -922,6 +1162,10 @@
    self->radius = 0;
    self->brightness = 1.f;
    self->corner_radius = 0.f;
++  self->vibrancy = 0.f;
 +  self->refraction_strength = 0.f;
 +  self->refraction_radius = 0.f;
 +  self->refraction_inner_radius = 0.f;
  
    self->actor_fb.pipeline = create_base_pipeline ();
    self->background_fb.pipeline = create_base_pipeline ();
-@@ -930,6 +1141,18 @@
+@@ -929,6 +1173,20 @@
    self->mask_fb.pipeline = create_mask_pipeline ();
    self->brightness_uniform =
      cogl_pipeline_get_uniform_location (self->brightness_fb.pipeline, "brightness");
++  self->vibrancy_uniform =
++    cogl_pipeline_get_uniform_location (self->brightness_fb.pipeline, "vibrancy");
 +  self->refraction_strength_uniform =
 +    cogl_pipeline_get_uniform_location (self->brightness_fb.pipeline, "refraction_strength");
 +  self->refract_size_uniform =
@@ -308,10 +345,37 @@
    self->corner_radius_uniform =
      cogl_pipeline_get_uniform_location (self->mask_fb.pipeline, "u_corner_radius");
    self->mask_size_uniform =
-@@ -1056,3 +1279,84 @@
+@@ -1055,3 +1313,111 @@
  
    g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_CORNER_RADIUS]);
  }
++
++float
++shell_blur_effect_get_vibrancy (ShellBlurEffect *self)
++{
++  g_return_val_if_fail (SHELL_IS_BLUR_EFFECT (self), 0.f);
++  return self->vibrancy;
++}
++
++void
++shell_blur_effect_set_vibrancy (ShellBlurEffect *self,
++                                float            vibrancy)
++{
++  g_return_if_fail (SHELL_IS_BLUR_EFFECT (self));
++
++  vibrancy = CLAMP (vibrancy, 0.f, 1.f);
++
++  if (self->vibrancy == vibrancy)
++    return;
++
++  self->vibrancy = vibrancy;
++  self->cache_flags &= ~BLUR_APPLIED;
++
++  if (self->actor)
++    clutter_effect_queue_repaint (CLUTTER_EFFECT (self));
++
++  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_VIBRANCY]);
++}
 +
 +float
 +shell_blur_effect_get_refraction_strength (ShellBlurEffect *self)
@@ -395,10 +459,14 @@
 +}
 --- a/src/shell-blur-effect.h
 +++ b/src/shell-blur-effect.h
-@@ -58,4 +58,16 @@
+@@ -58,4 +58,20 @@
  void shell_blur_effect_set_corner_radius (ShellBlurEffect *self,
                                            float            corner_radius);
  
++float shell_blur_effect_get_vibrancy (ShellBlurEffect *self);
++void shell_blur_effect_set_vibrancy (ShellBlurEffect *self,
++                                     float            vibrancy);
++
 +float shell_blur_effect_get_refraction_strength (ShellBlurEffect *self);
 +void shell_blur_effect_set_refraction_strength (ShellBlurEffect *self,
 +                                                float            refraction_strength);
