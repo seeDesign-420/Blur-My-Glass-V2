@@ -1,6 +1,6 @@
 --- a/src/shell-blur-effect.c
 +++ b/src/shell-blur-effect.c
-@@ -45,10 +45,120 @@
+@@ -45,10 +45,117 @@
   */
  
  static const gchar *brightness_glsl_declarations =
@@ -13,14 +13,19 @@
 +"  float r_shape = mix(1.0, r_transition, step(0.0001, r_strength));      \n"
 +"  cogl_color_out.rgb *= brightness * r_shape;                            \n"
 +"  cogl_color_out.a *= r_shape;                                           \n"
++"  float v_amount = clamp(vibrancy, 0.0, 1.0);                            \n"
 +"  vec3 v_gray = vec3(dot(cogl_color_out.rgb, vec3(0.299, 0.587, 0.114)));\n"
-+"  cogl_color_out.rgb = clamp(mix(cogl_color_out.rgb,                     \n"
-+"                                 v_gray + (cogl_color_out.rgb - v_gray) * 1.8,\n"
-+"                                 clamp(vibrancy, 0.0, 1.0)), 0.0, 1.0);  \n"
++"  float v_luma = v_gray.r;                                               \n"
++"  float v_midtones = 1.0 - abs(v_luma * 2.0 - 1.0);                     \n"
++"  float v_saturation = 1.0 + (0.35 + 0.55 * v_midtones) * v_amount;      \n"
++"  vec3 v_vibrant = v_gray + (cogl_color_out.rgb - v_gray) * v_saturation;\n"
++"  float v_lift = (0.03 + 0.10 * v_midtones) * v_amount;                  \n"
++"  float r_material = max(v_amount * 0.8, clamp(r_strength * 0.55, 0.0, 1.0));\n"
++"  cogl_color_out.rgb = clamp(mix(v_vibrant, vec3(1.0), v_lift), 0.0, 1.0);\n"
 +"  /* Border highlight from SDF */                                         \n"
-+"  cogl_color_out.rgb += vec3(r_border * r_transition * r_strength * 0.15);\n"
++"  cogl_color_out.rgb += vec3(r_border * r_transition * r_material * 0.12);\n"
 +"  /* Vertical gradient for top-light gloss */                             \n"
-+"  cogl_color_out.rgb += vec3(r_gradient * r_transition * r_strength * 0.2);\n";
++"  cogl_color_out.rgb += vec3(r_gradient * r_transition * r_material * 0.14);\n";
 +
 +/* Declarations for the texture-lookup (layer) snippet.
 + * Uniforms MUST be declared here because COGL_SNIPPET_HOOK_TEXTURE_LOOKUP
@@ -46,12 +51,6 @@
 +" * Uses bounds-safe multi-sample texture2D lookups for broad compatibility.*/\n"
 +"                                                                          \n"
 +"r_strength = clamp(refraction_strength, 0.0, 2.0);                       \n"
-+"if (r_strength <= 0.0) {                                                  \n"
-+"  r_transition = 0.0;                                                     \n"
-+"  r_border = 0.0;                                                         \n"
-+"  r_gradient = 0.0;                                                       \n"
-+"  cogl_texel = texture2D(cogl_sampler, cogl_tex_coord.st);                \n"
-+"} else {                                                                  \n"
 +"                                                                          \n"
 +"/* Actor clips can be smaller than the blur actor (static window blur). */\n"
 +"vec2 r_actor_size = max(u_refract_size, vec2(1.0));                      \n"
@@ -88,13 +87,12 @@
 +"float r_gw = 2.0 / r_bounds.y;                                            \n"
 +"float r_grad_ring = smoothstep(2.0*r_aa, -2.0*r_aa, r_sd + r_gw)          \n"
 +"                  - smoothstep(1.0*r_aa, -1.0*r_aa, r_sd - r_gw);        \n"
-+"r_gradient = clamp(clamp(r_m2.y, 0.0, 0.2) + 0.1, 0.0, 1.0) / 2.0       \n"
-+"           + clamp(clamp(-r_m2.y, -1.0, 0.2) * r_grad_ring              \n"
-+"                   + 0.1, 0.0, 1.0) / 2.0;                              \n"
++"float r_vertical = 1.0 - clamp(r_local_uv.y, 0.0, 1.0);                  \n"
++"r_gradient = r_grad_ring * (0.25 + 0.75 * r_vertical);                   \n"
 +"                                                                          \n"
 +"/* Zoom-lens refraction: sin(pow(dist, 0.25) * pi/2) warp */             \n"
 +"vec2 r_final_uv = cogl_tex_coord.st;                                      \n"
-+"if (r_transition > 0.0) {                                                 \n"
++"if (r_strength > 0.0 && r_transition > 0.0) {                            \n"
 +"  float r_dist = clamp(-r_inner_sd / r_strength, 0.0, 1.0);              \n"
 +"  float r_warp = sin(pow(r_dist, 0.25) * 1.5707963);                     \n"
 +"  vec2 r_lens_local = r_m2 * r_warp + 0.5;                               \n"
@@ -118,8 +116,7 @@
 +"  texture2D(cogl_sampler, r_uv1) +                                        \n"
 +"  texture2D(cogl_sampler, r_uv2) +                                        \n"
 +"  texture2D(cogl_sampler, r_uv3) +                                        \n"
-+"  texture2D(cogl_sampler, r_uv4));                                        \n"
-+"}                                                                         \n";
++"  texture2D(cogl_sampler, r_uv4));                                        \n";
  
  static const gchar *mask_glsl_declarations =
  "uniform float u_corner_radius;                                            \n"
