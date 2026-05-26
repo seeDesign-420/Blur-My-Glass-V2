@@ -15,6 +15,10 @@ build: clean
 			--extra-source=../resources/ui \
 			--extra-source=./components \
 			--extra-source=./conveniences \
+			--extra-source=./runtime \
+			--extra-source=./overlays \
+			--extra-source=./integrations \
+			--extra-source=./blur \
 			--extra-source=./effects \
 			--extra-source=./preferences \
 			--extra-source=./dbus \

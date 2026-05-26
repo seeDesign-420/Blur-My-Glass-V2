@@ -1,3 +1,4 @@
+import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import Gio from 'gi://Gio';
 import St from 'gi://St';
@@ -6,7 +7,7 @@ import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 
 import { ApplicationsService } from '../dbus/services.js';
 import { PaintSignals } from '../conveniences/paint_signals.js';
-import { DummyPipeline } from '../conveniences/dummy_pipeline.js';
+import { DynamicBlurPipeline } from '../conveniences/dummy_pipeline.js';
 import { Pipeline } from '../conveniences/pipeline.js';
 
 
@@ -70,6 +71,7 @@ export const ApplicationsBlur = class ApplicationsBlur {
         this._blacklist_pattern_cache = new Map();
         this._compiled_whitelist = [];
         this._compiled_blacklist = [];
+        this._restart_source_id = 0;
 
         // compile initial patterns
         this._update_patterns();
@@ -407,7 +409,7 @@ export const ApplicationsBlur = class ApplicationsBlur {
             blur_actor.set_clip(0, 0, 1, 1);
             window_actor.insert_child_at_index(blur_actor, 0);
 
-            const pipeline = new DummyPipeline(this.effects_manager, this.settings.applications);
+            const pipeline = new DynamicBlurPipeline(this.effects_manager, this.settings.applications);
             [blur_widget, meta_window.bg_manager] = pipeline.create_background_with_effect(
                 blur_actor, 'bms-application-blurred-widget'
             );
@@ -673,11 +675,12 @@ export const ApplicationsBlur = class ApplicationsBlur {
         if (meta_window._bms_size_retry)
             return;
 
-        meta_window._bms_size_retry = setTimeout(() => {
-            delete meta_window._bms_size_retry;
+        meta_window._bms_size_retry = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, () => {
+            meta_window._bms_size_retry = null;
             if (this.meta_window_map.has(meta_window.bms_pid))
                 this.update_size(meta_window.bms_pid);
-        }, 16);
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     _has_allocation(actor) {
@@ -877,7 +880,13 @@ export const ApplicationsBlur = class ApplicationsBlur {
         this._log("resetting...");
 
         this.disable();
-        setTimeout(_ => this.enable(), 1);
+        if (this._restart_source_id)
+            GLib.source_remove(this._restart_source_id);
+        this._restart_source_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1, () => {
+            this._restart_source_id = 0;
+            this.enable();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     change_pipeline() {
@@ -930,6 +939,10 @@ export const ApplicationsBlur = class ApplicationsBlur {
         this.remove_blur(pid);
         let meta_window = this.meta_window_map.get(pid);
         if (meta_window) {
+            if (meta_window._bms_size_retry) {
+                GLib.source_remove(meta_window._bms_size_retry);
+                meta_window._bms_size_retry = null;
+            }
             this.connections.disconnect_all_for(meta_window);
             this.meta_window_map.delete(pid);
         }
@@ -937,6 +950,11 @@ export const ApplicationsBlur = class ApplicationsBlur {
 
     disable() {
         this._log("removing blur from applications...");
+
+        if (this._restart_source_id) {
+            GLib.source_remove(this._restart_source_id);
+            this._restart_source_id = 0;
+        }
 
         this.service?.unexport();
         delete this.mutter_gsettings;

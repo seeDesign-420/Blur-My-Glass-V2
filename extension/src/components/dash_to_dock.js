@@ -5,7 +5,7 @@ import * as Signals from 'resource:///org/gnome/shell/misc/signals.js';
 import { PaintSignals } from '../conveniences/paint_signals.js';
 
 import { Pipeline } from '../conveniences/pipeline.js';
-import { DummyPipeline } from '../conveniences/dummy_pipeline.js';
+import { DynamicBlurPipeline } from '../conveniences/dummy_pipeline.js';
 
 const DASH_STYLES = [
     "transparent-dash",
@@ -320,7 +320,7 @@ export const DashBlur = class DashBlur extends Signals.EventEmitter {
             bg_manager = bg_manager_list[0];
         }
         else {
-            const pipeline = new DummyPipeline(
+            const pipeline = new DynamicBlurPipeline(
                 global.blur_my_shell._effects_manager,
                 this.settings.dash_to_dock
             );

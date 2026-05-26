@@ -41,13 +41,21 @@ export const EffectsManager = class EffectsManager {
         this.connections.connect(effect, 'notify::actor', _ => {
             let actor = effect.get_actor();
 
-            if (effect.old_actor && actor != effect.old_actor)
-                effect.old_actor.disconnect(effect.old_actor_id);
+            if (effect.old_actor && actor !== effect.old_actor) {
+                try {
+                    effect.old_actor.disconnect(effect.old_actor_id);
+                } catch (e) {
+                    this._warn(`error removing old actor destroy handler: ${e}; continuing`);
+                }
+                effect.old_actor_id = null;
+                effect.old_actor = null;
+            }
 
-            if (actor && actor != effect.old_actor) {
+            if (actor && actor !== effect.old_actor) {
                 effect.old_actor_id = actor.connect('destroy', _ => {
                     this.remove(effect, true);
                 });
+                effect.old_actor = actor;
             }
         });
     }
@@ -60,10 +68,15 @@ export const EffectsManager = class EffectsManager {
             } catch (e) {
                 this._warn(`could not remove the effect, continuing: ${e}`);
             }
-        if (effect.old_actor)
-            effect.old_actor.disconnect(effect.old_actor_id);
-        delete effect.old_actor;
-        delete effect.old_actor_id;
+        if (effect.old_actor) {
+            try {
+                effect.old_actor.disconnect(effect.old_actor_id);
+            } catch (e) {
+                this._warn(`error removing destroy handler for pooled effect: ${e}; continuing`);
+            }
+        }
+        effect.old_actor = null;
+        effect.old_actor_id = null;
 
         let index = this.used.indexOf(effect);
         if (index >= 0) {

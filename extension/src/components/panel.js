@@ -6,7 +6,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { PaintSignals } from '../conveniences/paint_signals.js';
 
 import { Pipeline } from '../conveniences/pipeline.js';
-import { DummyPipeline } from '../conveniences/dummy_pipeline.js';
+import { DynamicBlurPipeline } from '../conveniences/dummy_pipeline.js';
 
 const DASH_TO_PANEL_UUID = 'dash-to-panel@jderose9.github.com';
 const PANEL_STYLES = [
@@ -28,6 +28,8 @@ export const PanelBlur = class PanelBlur {
         this.effects_manager = effects_manager;
         this.actors_list = [];
         this.enabled = false;
+        this._reset_source_id = 0;
+        this._dtp_idle_source_ids = new Set();
     }
 
     enable() {
@@ -103,7 +105,13 @@ export const PanelBlur = class PanelBlur {
         this._log("resetting...");
 
         this.disable();
-        setTimeout(_ => this.enable(), 1);
+        if (this._reset_source_id)
+            GLib.source_remove(this._reset_source_id);
+        this._reset_source_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1, () => {
+            this._reset_source_id = 0;
+            this.enable();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     /// Check for already existing panels and blur them if they are not already
@@ -138,7 +146,8 @@ export const PanelBlur = class PanelBlur {
         // This is crucial to ensure the panel actors have been allocated their
         // final size and position by the compositor, avoiding race conditions
         // during extension startup.
-        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+        const sourceId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._dtp_idle_source_ids.delete(sourceId);
             if (!global.dashToPanel?.panels) {
                 return GLib.SOURCE_REMOVE;
             }
@@ -153,6 +162,7 @@ export const PanelBlur = class PanelBlur {
 
             return GLib.SOURCE_REMOVE;
         });
+        this._dtp_idle_source_ids.add(sourceId);
     };
 
     /// Blur a panel only if it is not already blurred (contained in the list)
@@ -200,7 +210,7 @@ export const PanelBlur = class PanelBlur {
             bg_manager = bg_manager_list[0];
         }
         else {
-            const pipeline = new DummyPipeline(this.effects_manager, this.settings.panel);
+            const pipeline = new DynamicBlurPipeline(this.effects_manager, this.settings.panel);
             [background, bg_manager] = pipeline.create_background_with_effect(
                 background_group, 'bms-panel-blurred-widget'
             );
@@ -591,6 +601,14 @@ export const PanelBlur = class PanelBlur {
         const immutable_actors_list = [...this.actors_list];
         immutable_actors_list.forEach(actors => this.destroy_blur(actors, false));
         this.actors_list = [];
+
+        if (this._reset_source_id) {
+            GLib.source_remove(this._reset_source_id);
+            this._reset_source_id = 0;
+        }
+        for (const sourceId of this._dtp_idle_source_ids)
+            GLib.source_remove(sourceId);
+        this._dtp_idle_source_ids.clear();
 
         this._dirty = true;
 

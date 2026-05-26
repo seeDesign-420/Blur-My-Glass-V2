@@ -12,6 +12,10 @@ import { EffectsManager } from './conveniences/effects_manager.js';
 import { Connections } from './conveniences/connections.js';
 import { Settings } from './conveniences/settings.js';
 import { KEYS } from './conveniences/keys.js';
+import { ComponentRegistry } from './runtime/component_registry.js';
+import { SessionModeController } from './runtime/session_mode_controller.js';
+import { SettingsRouter } from './runtime/settings_router.js';
+import { CapabilityService } from './runtime/capability_service.js';
 
 import { PanelBlur } from './components/panel.js';
 import { OverviewBlur } from './components/overview.js';
@@ -55,8 +59,10 @@ export default class BlurMyShell extends Extension {
 
         // create a global pipelines manager, that helps talking with preferences
         this._pipelines_manager = new PipelinesManager(this._settings);
+        this._settings_router = new SettingsRouter();
+        this._capability_service = new CapabilityService(BlurModule);
 
-        // create an instance of each component, with its associated Connections
+        // create component instances and keep wiring metadata centralized.
         let init = () => {
             // create a Connections instance, to manage signals
             let connection = new Connections;
@@ -67,16 +73,80 @@ export default class BlurMyShell extends Extension {
             return [connection, this._settings, this._effects_manager];
         };
 
-        this._panel_blur = new PanelBlur(...init());
-        this._dhruva_blur = new DhruvaBlur(...init());
-        this._overview_blur = new OverviewBlur(...init());
-        this._overlays_blur = new OverlaysBlur(...init());
-        this._lockscreen_blur = new LockscreenBlur(...init());
-        this._appfolder_blur = new AppFoldersBlur(...init());
-        this._window_list_blur = new WindowListBlur(...init());
-        this._coverflow_alt_tab_blur = new CoverflowAltTabBlur(...init());
-        this._applications_blur = new ApplicationsBlur(...init());
-        this._screenshot_blur = new ScreenshotBlur(...init());
+        this._component_registry = new ComponentRegistry(this._settings);
+        this._component_registry.register({
+            key: 'panel',
+            sessionScope: 'user',
+            shouldEnable: settings => settings.panel.BLUR,
+            factory: () => new PanelBlur(...init()),
+        });
+        this._component_registry.register({
+            key: 'dhruva',
+            sessionScope: 'user',
+            shouldEnable: settings => settings.dhruva.BLUR,
+            factory: () => new DhruvaBlur(...init()),
+        });
+        this._component_registry.register({
+            key: 'overview',
+            sessionScope: 'user',
+            shouldEnable: settings => settings.overview.BLUR,
+            factory: () => new OverviewBlur(...init()),
+        });
+        this._component_registry.register({
+            key: 'overlays',
+            sessionScope: 'user',
+            shouldEnable: settings => settings.overlays.BLUR,
+            factory: () => new OverlaysBlur(...init()),
+        });
+        this._component_registry.register({
+            key: 'lockscreen',
+            sessionScope: 'always',
+            shouldEnable: settings => settings.lockscreen.BLUR,
+            factory: () => new LockscreenBlur(...init()),
+        });
+        this._component_registry.register({
+            key: 'appfolder',
+            sessionScope: 'user',
+            shouldEnable: settings => settings.appfolder.BLUR,
+            factory: () => new AppFoldersBlur(...init()),
+        });
+        this._component_registry.register({
+            key: 'window-list',
+            sessionScope: 'user',
+            shouldEnable: settings => settings.window_list.BLUR,
+            factory: () => new WindowListBlur(...init()),
+        });
+        this._component_registry.register({
+            key: 'coverflow-alt-tab',
+            sessionScope: 'user',
+            shouldEnable: settings => settings.coverflow_alt_tab.BLUR,
+            factory: () => new CoverflowAltTabBlur(...init()),
+        });
+        this._component_registry.register({
+            key: 'applications',
+            sessionScope: 'user',
+            shouldEnable: settings => settings.applications.BLUR,
+            factory: () => new ApplicationsBlur(...init()),
+        });
+        this._component_registry.register({
+            key: 'screenshot',
+            sessionScope: 'user',
+            shouldEnable: settings => settings.screenshot.BLUR,
+            factory: () => new ScreenshotBlur(...init()),
+        });
+        this._component_registry.initAll(this);
+
+        // Keep existing property names to avoid broad callback churn.
+        this._panel_blur = this._component_registry.get('panel');
+        this._dhruva_blur = this._component_registry.get('dhruva');
+        this._overview_blur = this._component_registry.get('overview');
+        this._overlays_blur = this._component_registry.get('overlays');
+        this._lockscreen_blur = this._component_registry.get('lockscreen');
+        this._appfolder_blur = this._component_registry.get('appfolder');
+        this._window_list_blur = this._component_registry.get('window-list');
+        this._coverflow_alt_tab_blur = this._component_registry.get('coverflow-alt-tab');
+        this._applications_blur = this._component_registry.get('applications');
+        this._screenshot_blur = this._component_registry.get('screenshot');
 
         // connect each component to preferences change
         this._connect_to_settings();
@@ -96,6 +166,10 @@ export default class BlurMyShell extends Extension {
 
         // ensure we take the correct action for the current session mode
         this._user_session_mode_enabled = false;
+        this._session_mode_controller = new SessionModeController(
+            () => this._enable_user_session(),
+            () => this._disable_user_session()
+        );
         this._on_session_mode_changed(Main.sessionMode);
 
         // watch for changes to the session mode
@@ -206,22 +280,17 @@ export default class BlurMyShell extends Extension {
         this._log("extension disabled.");
 
         this._settings = null;
+        this._component_registry = null;
+        this._session_mode_controller = null;
+        this._settings_router = null;
+        this._capability_service = null;
     }
 
     /// Disables the components related to the user session (everything except lockscreen blur).
     _disable_user_session() {
         this._log("disabling user session mode...");
 
-        // disable every component except lockscreen blur
-        this._panel_blur.disable();
-        this._dhruva_blur.disable();
-        this._overview_blur.disable();
-        this._overlays_blur.disable();
-        this._appfolder_blur.disable();
-        this._window_list_blur.disable();
-        this._coverflow_alt_tab_blur.disable();
-        this._applications_blur.disable();
-        this._screenshot_blur.disable();
+        this._component_registry?.disableUserSessionComponents();
 
         // remove the clipped redraws flag
         this._reenable_clipped_redraws();
@@ -244,23 +313,17 @@ export default class BlurMyShell extends Extension {
     /// Changes the extension to operate either on 'user' mode or 'unlock-dialog' mode, switching
     /// from one to the other means enabling/disabling every component except lockscreen blur.
     _on_session_mode_changed(session) {
-        if (session.currentMode === 'user' || session.parentMode === 'user') {
-            if (!this._user_session_mode_enabled)
-                // we need to activate everything
-                this._enable_user_session();
-        }
-        else if (session.currentMode === 'unlock-dialog') {
-            if (this._user_session_mode_enabled)
-                // we need to disable the components related to the user session mode
-                this._disable_user_session();
-        }
+        this._session_mode_controller.handleSessionModeChanged(
+            session,
+            this._user_session_mode_enabled
+        );
     }
 
     /// Verify whether or not the gi://Blur library was found, in order to inform
     /// the preferences and instruct the user to install it to have native rounded
     /// corners in dynamic blur.
     _update_rounded_blur_found() {
-        if (BlurModule === null) {
+        if (!this._capability_service.hasRoundedBlurSupport()) {
             this._settings.ROUNDED_BLUR_FOUND = false;
             this._log("using original implementation for the native blur effect")
         } else {
@@ -309,365 +372,14 @@ export default class BlurMyShell extends Extension {
     /// Enables every component from the user session needed, should be called when the shell is
     /// entirely loaded as the `enable` methods interact with it.
     _enable_components() {
-        // enable each component if needed, and if it is not already enabled
-
-        if (this._settings.panel.BLUR && !this._panel_blur.enabled)
-            this._panel_blur.enable();
-
-        if (this._settings.dhruva.BLUR && !this._dhruva_blur.enabled)
-            this._dhruva_blur.enable();
-
-        if (this._settings.overview.BLUR && !this._overview_blur.enabled)
-            this._overview_blur.enable();
-
-        if (this._settings.overlays.BLUR && !this._overlays_blur.enabled)
-            this._overlays_blur.enable();
-
-        if (this._settings.appfolder.BLUR)
-            this._appfolder_blur.enable();
-
-        if (this._settings.applications.BLUR)
-            this._applications_blur.enable();
-
-        if (this._settings.window_list.BLUR)
-            this._window_list_blur.enable();
-
-        if (this._settings.coverflow_alt_tab.BLUR)
-            this._coverflow_alt_tab_blur.enable();
-
-        if (this._settings.screenshot.BLUR)
-            this._screenshot_blur.enable();
+        this._component_registry?.enableUserSessionComponents();
 
         this._log("all components enabled.");
     }
 
     /// Updates needed things in each component when a preference changed
     _connect_to_settings() {
-        // restart the extension when hacks level is changed, easier than
-        // restarting individual components and should not happen often either
-        this._settings.HACKS_LEVEL_changed(() => this._restart());
-
-
-        // ---------- OVERVIEW ----------
-
-        // toggled on/off
-        this._settings.overview.BLUR_changed(() => {
-            if (this._settings.overview.BLUR)
-                this._overview_blur.enable();
-            else
-                this._overview_blur.disable();
-        });
-
-        // overview pipeline changed
-        this._settings.overview.PIPELINE_changed(() => {
-            if (this._settings.overview.BLUR)
-                this._overview_blur.update_backgrounds();
-        });
-
-        // overview components style changed
-        this._settings.overview.STYLE_COMPONENTS_changed(() => {
-            if (this._settings.overview.BLUR)
-                this._overview_blur.update_components_classname();
-        });
-
-
-        // ---------- OVERLAYS ----------
-
-        // toggled on/off
-        this._settings.overlays.BLUR_changed(() => {
-            if (this._settings.overlays.BLUR)
-                this._overlays_blur.enable();
-            else
-                this._overlays_blur.disable();
-        });
-
-        // static blur toggled on/off
-        this._settings.overlays.STATIC_BLUR_changed(() => {
-            if (this._settings.overlays.BLUR)
-                this._overlays_blur.syncTargets(true);
-        });
-
-        // date/calendar menu toggle
-        this._settings.overlays.DATE_MENU_changed(() => {
-            if (this._settings.overlays.BLUR)
-                this._overlays_blur.syncTargets();
-        });
-
-        // quick settings toggle
-        this._settings.overlays.QUICK_SETTINGS_changed(() => {
-            if (this._settings.overlays.BLUR)
-                this._overlays_blur.syncTargets();
-        });
-
-        // notifications toggle
-        this._settings.overlays.NOTIFICATIONS_changed(() => {
-            if (this._settings.overlays.BLUR)
-                this._overlays_blur.syncTargets();
-        });
-
-        // osd toggle
-        this._settings.overlays.OSD_changed(() => {
-            if (this._settings.overlays.BLUR)
-                this._overlays_blur.syncTargets();
-        });
-
-        // desktop menus toggle
-        this._settings.overlays.DESKTOP_MENUS_changed(() => {
-            if (this._settings.overlays.BLUR)
-                this._overlays_blur.syncTargets();
-        });
-
-        // app menus toggle
-        this._settings.overlays.APP_MENUS_changed(() => {
-            if (this._settings.overlays.BLUR)
-                this._overlays_blur.syncTargets();
-        });
-
-
-        // ---------- APPFOLDER ----------
-
-        // toggled on/off
-        this._settings.appfolder.BLUR_changed(() => {
-            if (this._settings.appfolder.BLUR)
-                this._appfolder_blur.enable();
-            else
-                this._appfolder_blur.disable();
-        });
-
-        // appfolder sigma changed
-        this._settings.appfolder.SIGMA_changed(() => {
-            if (this._settings.appfolder.BLUR)
-                this._appfolder_blur.set_sigma(
-                    this._settings.appfolder.SIGMA
-                );
-        });
-
-        // appfolder brightness changed
-        this._settings.appfolder.BRIGHTNESS_changed(() => {
-            if (this._settings.appfolder.BLUR)
-                this._appfolder_blur.set_brightness(
-                    this._settings.appfolder.BRIGHTNESS
-                );
-        });
-
-        // appfolder vibrancy changed
-        this._settings.appfolder.VIBRANCY_changed(() => {
-            if (this._settings.appfolder.BLUR)
-                this._appfolder_blur.set_vibrancy(
-                    this._settings.appfolder.VIBRANCY
-                );
-        });
-
-        // appfolder dialogs style changed
-        this._settings.appfolder.STYLE_DIALOGS_changed(() => {
-            if (this._settings.appfolder.BLUR)
-                this._appfolder_blur.blur_appfolders();
-        });
-
-
-        // ---------- PANEL ----------
-
-        // toggled on/off
-        this._settings.panel.BLUR_changed(() => {
-            if (this._settings.panel.BLUR)
-                this._panel_blur.enable();
-            else
-                this._panel_blur.disable();
-        });
-
-        this._settings.dhruva.BLUR_changed(() => {
-            if (this._settings.dhruva.BLUR)
-                this._dhruva_blur.enable();
-            else
-                this._dhruva_blur.disable();
-        });
-
-        // static blur toggled on/off, really we can just reload the blur at this point
-        this._settings.panel.STATIC_BLUR_changed(() => {
-            if (this._settings.panel.BLUR)
-                this._panel_blur.reset();
-        });
-
-        // panel pipeline changed
-        this._settings.panel.PIPELINE_changed(() => {
-            if (this._settings.panel.BLUR)
-                this._panel_blur.update_pipeline();
-        });
-
-        // panel blur's overview connection toggled on/off
-        this._settings.panel.UNBLUR_IN_OVERVIEW_changed(() => {
-            this._panel_blur.connect_to_windows_and_overview();
-        });
-
-        // force light text toggled on/off
-        this._settings.panel.FORCE_LIGHT_TEXT_changed(() => {
-            if (this._settings.panel.BLUR)
-                this._panel_blur.update_light_text_classname();
-        });
-
-        // panel override background toggled on/off
-        this._settings.panel.OVERRIDE_BACKGROUND_changed(() => {
-            if (this._settings.panel.BLUR)
-                this._panel_blur.connect_to_windows_and_overview();
-        });
-
-        // panel style changed
-        this._settings.panel.STYLE_PANEL_changed(() => {
-            if (this._settings.panel.BLUR)
-                this._panel_blur.connect_to_windows_and_overview();
-        });
-
-        // panel background's dynamic overriding toggled on/off
-        this._settings.panel.OVERRIDE_BACKGROUND_DYNAMICALLY_changed(() => {
-            if (this._settings.panel.BLUR)
-                this._panel_blur.connect_to_windows_and_overview();
-        });
-
-        // ---------- APPLICATIONS ----------
-
-        // toggled on/off
-        this._settings.applications.BLUR_changed(() => {
-            if (this._settings.applications.BLUR)
-                this._applications_blur.enable();
-            else
-                this._applications_blur.disable();
-        });
-
-        // static blur toggled on/off
-        this._settings.applications.STATIC_BLUR_changed(() => {
-            if (this._settings.applications.BLUR)
-                this._applications_blur.change_blur_type();
-        });
-
-        // pipeline changed
-        this._settings.applications.PIPELINE_changed(() => {
-            if (this._settings.applications.BLUR)
-                this._applications_blur.change_pipeline();
-        });
-
-        // rounded corners on maximized windows changed
-        this._settings.applications.CORNER_WHEN_MAXIMIZED_changed(() => {
-            if (this._settings.applications.BLUR)
-                this._applications_blur.update_all_corner_radii();
-        });
-
-        // application opacity changed
-        this._settings.applications.OPACITY_changed(() => {
-            if (this._settings.applications.BLUR)
-                this._applications_blur.set_opacity(
-                    this._settings.applications.OPACITY
-                );
-        });
-
-        // application dynamic-opacity changed
-        this._settings.applications.DYNAMIC_OPACITY_changed(() => {
-            if (this._settings.applications.BLUR)
-                this._applications_blur.init_dynamic_opacity();
-        });
-
-        // application blur-on-overview changed
-        this._settings.applications.BLUR_ON_OVERVIEW_changed(() => {
-            if (this._settings.applications.BLUR)
-                this._applications_blur.connect_to_overview();
-        });
-
-        // application enable-all changed
-        this._settings.applications.ENABLE_ALL_changed(() => {
-            if (this._settings.applications.BLUR)
-                this._applications_blur.update_all_windows();
-        });
-
-        // application whitelist changed
-        this._settings.applications.WHITELIST_changed(() => {
-            if (
-                this._settings.applications.BLUR
-                && !this._settings.applications.ENABLE_ALL
-            )
-                this._applications_blur.update_all_windows();
-        });
-
-        // application blacklist changed
-        this._settings.applications.BLACKLIST_changed(() => {
-            if (
-                this._settings.applications.BLUR
-                && this._settings.applications.ENABLE_ALL
-            )
-                this._applications_blur.update_all_windows();
-        });
-
-
-        // ---------- LOCKSCREEN ----------
-
-        // toggled on/off
-        this._settings.lockscreen.BLUR_changed(() => {
-            if (this._settings.lockscreen.BLUR)
-                this._lockscreen_blur.enable();
-            else
-                this._lockscreen_blur.disable();
-        });
-
-        // lockscreen pipeline changed
-        this._settings.lockscreen.PIPELINE_changed(() => {
-            if (this._settings.lockscreen.BLUR)
-                this._lockscreen_blur.update_lockscreen();
-        });
-
-
-        // ---------- WINDOW LIST ----------
-
-        // toggled on/off
-        this._settings.window_list.BLUR_changed(() => {
-            if (this._settings.window_list.BLUR)
-                this._window_list_blur.enable();
-            else
-                this._window_list_blur.disable();
-        });
-
-
-        // ---------- COVERFLOW ALT-TAB ----------
-
-        // toggled on/off
-        this._settings.coverflow_alt_tab.BLUR_changed(() => {
-            if (this._settings.coverflow_alt_tab.BLUR)
-                this._coverflow_alt_tab_blur.enable();
-            else
-                this._coverflow_alt_tab_blur.disable();
-        });
-
-
-        // ---------- HIDETOPBAR ----------
-
-        // toggled on/off
-        this._settings.hidetopbar.COMPATIBILITY_changed(() => {
-            // no need to verify if it is enabled or not, it is done anyway
-            this._panel_blur.connect_to_windows_and_overview();
-        });
-
-
-        // ---------- DASH TO PANEL ----------
-
-        // toggled on/off
-        this._settings.dash_to_panel.BLUR_ORIGINAL_PANEL_changed(() => {
-            if (this._settings.panel.BLUR)
-                this._panel_blur.reset();
-        });
-
-
-        // ---------- SCREENSHOT ----------
-
-        // toggled on/off
-        this._settings.screenshot.BLUR_changed(() => {
-            if (this._settings.screenshot.BLUR)
-                this._screenshot_blur.enable();
-            else
-                this._screenshot_blur.disable();
-        });
-
-        // screenshot pipeline changed
-        this._settings.screenshot.PIPELINE_changed(() => {
-            if (this._settings.screenshot.BLUR)
-                this._screenshot_blur.update_pipeline();
-        });
+        this._settings_router.connect(this);
     }
 
     _log(str) {

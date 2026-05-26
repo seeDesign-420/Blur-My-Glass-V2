@@ -25,7 +25,9 @@ export const PaintSignals = class PaintSignals {
                     blur_effect.queue_repaint();
                 }
                 else counter--;
-            } catch (e) { }
+            } catch (e) {
+                // Actor/effect can vanish during teardown; safe to ignore.
+            }
         });
 
         // remove the actor from buffer when it is destroyed

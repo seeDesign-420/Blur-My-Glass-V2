@@ -26,3 +26,9 @@ Use `--liquid-glass` for the experimental compositor path, `--shell-only` or `--
 - The shell package targets GNOME 50.
 - The extension keeps the upstream schema id for compatibility with existing settings.
 - This repo is intended for Arch Linux or an Arch-based distro.
+
+## Runtime Refactor Notes
+
+- Backend runtime architecture and module ownership: `docs/backend-runtime-architecture.md`
+- Refactor completion audit: `docs/refactor-completion-audit.md`
+- Manual GNOME runtime checklist: `docs/manual-runtime-checklist.md`

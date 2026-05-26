@@ -1,7 +1,7 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { PaintSignals } from '../conveniences/paint_signals.js';
-import { DummyPipeline } from '../conveniences/dummy_pipeline.js';
+import { DynamicBlurPipeline } from '../conveniences/dummy_pipeline.js';
 
 
 export const WindowListBlur = class WindowListBlur {
@@ -45,7 +45,7 @@ export const WindowListBlur = class WindowListBlur {
         ) {
             this._log("found window list to blur");
 
-            const pipeline = new DummyPipeline(
+            const pipeline = new DynamicBlurPipeline(
                 this.effects_manager, this.settings.window_list
             );
             pipeline.attach_effect_to_actor(actor);
