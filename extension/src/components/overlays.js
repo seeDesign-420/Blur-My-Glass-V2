@@ -232,6 +232,28 @@ function isManagedOverlayActor(actor) {
     return styleClass.includes('bms-overlay-');
 }
 
+function isCorePanelOverlayActor(actor) {
+    return actor === Main.panel?.statusArea?.dateMenu?.menu?.actor ||
+        actor === Main.panel?.statusArea?.quickSettings?.menu?.actor;
+}
+
+function isExtensionPopupMenuActor(actor) {
+    if (!actor)
+        return false;
+
+    const styleClass = actor.get_style_class_name?.() ?? '';
+    if (!styleClass.includes('popup-menu'))
+        return false;
+
+    if (styleClass.includes('background-menu') ||
+        styleClass.includes('window-menu') ||
+        styleClass.includes('app-menu')) {
+        return false;
+    }
+
+    return !isCorePanelOverlayActor(actor);
+}
+
 const TARGET_DEFINITIONS = [
     {
         name: 'date-menu',
@@ -286,7 +308,9 @@ const TARGET_DEFINITIONS = [
         getActors: () => [Main.uiGroup, global.stage].filter(Boolean),
         match: actor => {
             const styleClass = actor.get_style_class_name?.() ?? '';
-            return styleClass.includes('window-menu') || styleClass.includes('app-menu');
+            return styleClass.includes('window-menu') ||
+                styleClass.includes('app-menu') ||
+                isExtensionPopupMenuActor(actor);
         },
         resolveTarget: resolvePopupContentActor,
         tuning: getOverlayTuning({name: 'app-menus'}),
