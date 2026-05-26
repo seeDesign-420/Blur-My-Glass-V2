@@ -208,6 +208,25 @@ function isManagedOverlayActor(actor) {
     return styleClass.includes('bms-overlay-');
 }
 
+function isQuickSettingsTileActor(actor) {
+    if (!actor || isManagedOverlayActor(actor) || isDrawingArea(actor))
+        return false;
+
+    const name = actor.get_name?.() ?? '';
+    if (name.startsWith('_') || name.includes('overlay') || name.includes('Overlay'))
+        return false;
+
+    const styleClass = actor.get_style_class_name?.() ?? '';
+    if (styleClass.includes('quick-toggle') || styleClass.includes('quick-toggle-has-menu') ||
+        styleClass.includes('quick-slider'))
+        return true;
+
+    if (styleClass.includes('overlay') || styleClass.includes('placeholder'))
+        return false;
+
+    return Boolean(actor.visible && isPositiveSize(actor));
+}
+
 function isDhruvaContextMenuOverlayActor(actor) {
     if (!actor)
         return false;
@@ -768,11 +787,217 @@ class OverlayHookManager {
     }
 }
 
+class QuickSettingsTileOverlayController {
+    constructor(runtime, menu) {
+        this.runtime = runtime;
+        this.menu = menu;
+        this._tileControllers = new Map();
+        this._signal_ids = [];
+        this._grid_signal_ids = [];
+        this._refresh_source_id = 0;
+        this._open_source_id = 0;
+        this._nextTileId = 1;
+        this.destroyed = false;
+    }
+
+    enable() {
+        if (this.destroyed || !this.menu)
+            return;
+
+        this._connect(this.menu, 'open-state-changed', (_menu, open) => {
+            if (open) {
+                this.queueRefresh();
+                this._scheduleOpenRefresh();
+            } else {
+                this._hideTilesAfterClose();
+            }
+        });
+
+        if (this.menu.actor)
+            this._connect(this.menu.actor, 'destroy', () => this.destroy());
+
+        this.rebuild(true);
+    }
+
+    _connect(obj, signal, callback) {
+        try {
+            const id = obj.connect(signal, callback);
+            this._signal_ids.push([obj, id]);
+        } catch (e) {
+            this.runtime._logSkipOnce('quick-settings', obj, `could not connect ${signal}: ${e}`);
+        }
+    }
+
+    _connectGrid(grid, signal, callback) {
+        try {
+            const id = grid.connect(signal, callback);
+            this._grid_signal_ids.push([grid, id]);
+        } catch (e) {
+            this.runtime._logSkipOnce('quick-settings', grid, `could not connect ${signal}: ${e}`);
+        }
+    }
+
+    _disconnectList(list) {
+        for (const [obj, id] of list) {
+            try {
+                obj.disconnect(id);
+            } catch {
+                // Actor or signal owner can already be gone.
+            }
+        }
+        list.length = 0;
+    }
+
+    _resolveGrid() {
+        return this.menu?._grid ?? Main.panel?.statusArea?.quickSettings?._system?._grid ?? null;
+    }
+
+    _connectGridSignals(grid) {
+        if (this._grid === grid)
+            return;
+
+        this._disconnectList(this._grid_signal_ids);
+        this._grid = grid;
+
+        if (!grid)
+            return;
+
+        this._connectGrid(grid, 'child-added', () => this.queueRefresh());
+        this._connectGrid(grid, 'child-removed', () => this.queueRefresh());
+        this._connectGrid(grid, 'notify::allocation', () => {
+            this.queueRefresh();
+            for (const controller of this._tileControllers.values())
+                controller.syncGeometry();
+        });
+        this._connectGrid(grid, 'destroy', () => {
+            this._grid = null;
+            this._disconnectList(this._grid_signal_ids);
+            this._destroyTileControllers();
+        });
+    }
+
+    queueRefresh() {
+        if (this._refresh_source_id || this.destroyed)
+            return;
+
+        this._refresh_source_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 32, () => {
+            this._refresh_source_id = 0;
+            if (!this.destroyed && this.runtime.enabled)
+                this.rebuild(false);
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _scheduleOpenRefresh() {
+        if (this._open_source_id)
+            GLib.source_remove(this._open_source_id);
+
+        this._open_source_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, OPEN_ANIMATION_DURATION_MS, () => {
+            this._open_source_id = 0;
+            if (!this.destroyed) {
+                this.rebuild(true);
+                for (const controller of this._tileControllers.values())
+                    controller.syncGeometry();
+            }
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _hideTilesAfterClose() {
+        for (const controller of this._tileControllers.values())
+            controller._scheduleCloseHide();
+    }
+
+    rebuild(forceGeometrySync) {
+        if (this.destroyed)
+            return;
+
+        if (!this.runtime.isTargetEnabled('quick-settings') ||
+            this.runtime.settings.overlays.STATIC_BLUR) {
+            this._destroyTileControllers();
+            return;
+        }
+
+        const grid = this._resolveGrid();
+        this._connectGridSignals(grid);
+        if (!grid) {
+            this._destroyTileControllers();
+            return;
+        }
+
+        const keepActors = new Set();
+        for (const actor of grid.get_children?.() ?? []) {
+            if (!isQuickSettingsTileActor(actor))
+                continue;
+
+            keepActors.add(actor);
+            let controller = this._tileControllers.get(actor);
+            if (!controller) {
+                const id = `quick-settings-tile-${this._nextTileId++}`;
+                controller = new OverlaySurfaceController(this.runtime, {
+                    id,
+                    target: 'quick-settings',
+                    getSurfaceActor: () => actor,
+                    getInsertActor: () => this.menu?._boxPointer ?? this.menu?.actor ?? actor,
+                });
+                this._tileControllers.set(actor, controller);
+                controller.enable();
+            }
+
+            controller.sync();
+            if (forceGeometrySync)
+                controller.syncGeometry();
+        }
+
+        for (const [actor, controller] of this._tileControllers.entries()) {
+            if (!keepActors.has(actor)) {
+                controller.destroy();
+                this._tileControllers.delete(actor);
+            }
+        }
+    }
+
+    sync() {
+        if (this.destroyed)
+            return;
+
+        this.rebuild(false);
+        for (const controller of this._tileControllers.values())
+            controller.sync();
+    }
+
+    _destroyTileControllers() {
+        for (const controller of this._tileControllers.values())
+            controller.destroy();
+        this._tileControllers.clear();
+    }
+
+    destroy() {
+        if (this.destroyed)
+            return;
+
+        this.destroyed = true;
+        if (this._refresh_source_id) {
+            GLib.source_remove(this._refresh_source_id);
+            this._refresh_source_id = 0;
+        }
+        if (this._open_source_id) {
+            GLib.source_remove(this._open_source_id);
+            this._open_source_id = 0;
+        }
+
+        this._disconnectList(this._signal_ids);
+        this._disconnectList(this._grid_signal_ids);
+        this._destroyTileControllers();
+    }
+}
+
 class OverlaySurfaceRegistry {
     constructor(runtime) {
         this.runtime = runtime;
         this._popupControllers = new Map();
         this._actorControllers = new Map();
+        this._quickSettingsTileController = null;
         this._signals = [];
         this._refresh_source_id = 0;
     }
@@ -823,9 +1048,11 @@ class OverlaySurfaceRegistry {
             controller.destroy();
         for (const controller of this._actorControllers.values())
             controller.destroy();
+        this._quickSettingsTileController?.destroy();
 
         this._popupControllers.clear();
         this._actorControllers.clear();
+        this._quickSettingsTileController = null;
     }
 
     _connect(obj, signal, callback) {
@@ -853,10 +1080,14 @@ class OverlaySurfaceRegistry {
 
     rebuild(forceGeometrySync) {
         this._rebuildPopupControllers(forceGeometrySync);
+        this._rebuildQuickSettingsTileControllers(forceGeometrySync);
         this._rebuildActorControllers(forceGeometrySync);
     }
 
     isTrackedMenu(menu) {
+        if (this._quickSettingsTileController?.menu === menu)
+            return true;
+
         for (const controller of this._popupControllers.values()) {
             if (controller.menu === menu)
                 return true;
@@ -869,6 +1100,7 @@ class OverlaySurfaceRegistry {
             controller.sync();
         for (const controller of this._actorControllers.values())
             controller.sync();
+        this._quickSettingsTileController?.sync();
     }
 
     _upsertPopupController(id, options, forceGeometrySync = false) {
@@ -912,7 +1144,8 @@ class OverlaySurfaceRegistry {
         const keep = new Set();
 
         const quickSettingsMenu = Main.panel?.statusArea?.quickSettings?.menu;
-        if (quickSettingsMenu?.actor && this.runtime.isTargetEnabled('quick-settings')) {
+        if (quickSettingsMenu?.actor && this.runtime.isTargetEnabled('quick-settings') &&
+            this.runtime.settings.overlays.STATIC_BLUR) {
             const id = 'quick-settings';
             keep.add(id);
             this._upsertPopupController(id, {
@@ -958,6 +1191,32 @@ class OverlaySurfaceRegistry {
         }
 
         this._pruneControllers(this._popupControllers, keep);
+    }
+
+    _rebuildQuickSettingsTileControllers(forceGeometrySync) {
+        const quickSettingsMenu = Main.panel?.statusArea?.quickSettings?.menu;
+        const enabled = quickSettingsMenu?.actor &&
+            this.runtime.isTargetEnabled('quick-settings') &&
+            !this.runtime.settings.overlays.STATIC_BLUR;
+
+        if (!enabled) {
+            this._quickSettingsTileController?.destroy();
+            this._quickSettingsTileController = null;
+            return;
+        }
+
+        if (this._quickSettingsTileController?.menu !== quickSettingsMenu) {
+            this._quickSettingsTileController?.destroy();
+            this._quickSettingsTileController = null;
+        }
+
+        if (!this._quickSettingsTileController) {
+            this._quickSettingsTileController =
+                new QuickSettingsTileOverlayController(this.runtime, quickSettingsMenu);
+            this._quickSettingsTileController.enable();
+        } else {
+            this._quickSettingsTileController.rebuild(forceGeometrySync);
+        }
     }
 
     _rebuildActorControllers(forceGeometrySync) {
