@@ -6,8 +6,8 @@
 |---------|------|--------|-------|
 | v1.0 | Anti-Aliased Unified Patches | Previous work, verification pending | Earlier patch phases exist; verification is still pending. |
 | v1.1 | Refraction Edge Anti-Aliasing | Previous work, verification pending | Patch update applied and prepare checks pass; runtime visual verification still pending. |
-| v1.2 | Broad Shell Overlay Glass | Active | Add blur/glass treatment to broad GNOME Shell overlays using `liquid-glass` as a reference project. |
-| v1.3 | Vibrant Brightness Tuning | Upcoming | Improve perceived brightness and vibrancy beyond the current multiplicative brightness control. |
+| v1.2 | Broad Shell Overlay Glass | Previous work | Broad overlay glass work was tracked here before later milestone planning moved on. |
+| v1.3 | Vibrant Brightness Tuning | Complete | Milestone complete; no follow-on milestone is active yet. |
 
 ## v1.0 - Anti-Aliased Unified Patches
 
@@ -38,7 +38,7 @@
 
 ## v1.2 - Broad Shell Overlay Glass
 
-**Status:** Active.
+**Status:** Previous work.
 
 **Goal:** Add blur/glass treatment to broad GNOME Shell overlays that currently show unblurred or poorly integrated backgrounds.
 
@@ -54,7 +54,7 @@
 
 ## v1.3 - Vibrant Brightness Tuning
 
-**Status:** Upcoming.
+**Status:** Complete.
 
 **Goal:** Improve the perceived brightness, vibrancy, and readability of blur surfaces beyond the current multiplicative brightness slider.
 
@@ -62,3 +62,5 @@
 - More vibrant blur output without washing out text
 - Better visual range for the brightness preference
 - Compatibility with existing blur components and liquid-glass refraction settings
+
+**Completion note:** Marked complete on 2026-05-26 while the project shifts to other work.

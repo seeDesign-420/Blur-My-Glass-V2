@@ -15,17 +15,9 @@ Enable frosted-glass blur with proper rounded corners on GNOME/Wayland — somet
 - **Consumers:** blur-my-shell extension (sets `corner-radius` property via GObject)
 - **Two patch variants:** rounded corners mask (stable) and liquid glass compositor (experimental)
 
-## Current Milestone: v1.2 — Broad Shell Overlay Glass
+## Current Milestone: None Active
 
-**Goal:** Add blur/glass treatment to broad GNOME Shell overlays that currently show unblurred or poorly integrated backgrounds.
-
-**Target features:**
-- Date/calendar menu glass blur
-- Quick Settings glass blur
-- Notification banners and notification list glass blur
-- OSD glass blur
-- Desktop context menu glass blur
-- Application and jump-list menu glass blur where technically feasible
+`v1.3` - Vibrant Brightness Tuning is marked complete. No new milestone has been selected yet.
 
 ## Key Decisions
 
@@ -40,7 +32,7 @@ Enable frosted-glass blur with proper rounded corners on GNOME/Wayland — somet
 
 ## Active Requirements
 
-See `REQUIREMENTS.md` for v1.2 requirements.
+See `REQUIREMENTS.md` for the last active milestone requirements history.
 
 ## Validated Requirements
 
@@ -70,4 +62,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-22*
+*Last updated: 2026-05-26*
