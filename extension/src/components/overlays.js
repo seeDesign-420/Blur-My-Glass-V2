@@ -237,6 +237,14 @@ function isCorePanelOverlayActor(actor) {
         actor === Main.panel?.statusArea?.quickSettings?.menu?.actor;
 }
 
+function isDhruvaContextMenuOverlayActor(actor) {
+    if (!actor)
+        return false;
+
+    const styleClass = actor.get_style_class_name?.() ?? '';
+    return styleClass.includes('context-menu-overlay');
+}
+
 function isExtensionPopupMenuActor(actor) {
     if (!actor)
         return false;
@@ -250,6 +258,9 @@ function isExtensionPopupMenuActor(actor) {
         styleClass.includes('app-menu')) {
         return false;
     }
+
+    if (isDhruvaContextMenuOverlayActor(actor))
+        return false;
 
     return !isCorePanelOverlayActor(actor);
 }
@@ -308,6 +319,8 @@ const TARGET_DEFINITIONS = [
         getActors: () => [Main.uiGroup, global.stage].filter(Boolean),
         match: actor => {
             const styleClass = actor.get_style_class_name?.() ?? '';
+            if (isDhruvaContextMenuOverlayActor(actor))
+                return false;
             return styleClass.includes('window-menu') ||
                 styleClass.includes('app-menu') ||
                 isExtensionPopupMenuActor(actor);
