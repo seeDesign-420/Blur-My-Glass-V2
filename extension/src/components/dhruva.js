@@ -113,9 +113,21 @@ export const DhruvaBlur = class DhruvaBlur {
             return;
 
         state.disposables?.dispose();
-        state.bgManager?._bms_pipeline?.destroy?.();
-        state.blurWidget?.destroy?.();
-        state.background_group?.destroy?.();
+        try {
+            state.bgManager?._bms_pipeline?.destroy?.();
+        } catch {
+            // The shell may already have disposed the pipeline owner.
+        }
+        try {
+            state.blurWidget?.destroy?.();
+        } catch {
+            // The dock actor can be destroyed before our cleanup runs.
+        }
+        try {
+            state.background_group?.destroy?.();
+        } catch {
+            // The background group can already be gone during teardown.
+        }
         this._blurred_docks.delete(container);
     }
 
@@ -126,8 +138,16 @@ export const DhruvaBlur = class DhruvaBlur {
 
         state.tracker?.dispose();
         state.disposables?.dispose();
-        state.bgManager?._bms_pipeline?.destroy?.();
-        state.blurWidget?.destroy?.();
+        try {
+            state.bgManager?._bms_pipeline?.destroy?.();
+        } catch {
+            // The shell can dispose the menu surface before cleanup.
+        }
+        try {
+            state.blurWidget?.destroy?.();
+        } catch {
+            // The menu widget can already be disposed by the time we unwind.
+        }
         this._blurred_menus.delete(overlay);
     }
 };
