@@ -21,6 +21,7 @@ export class QuickSettingsControlBlurSurface {
         this._bg_manager = null;
         this._shown = false;
         this.destroyed = false;
+        this._lastRect = null;
         this._geometryTracker = new BlurGeometryTracker(this._disposables, () => this.syncGeometry());
     }
 
@@ -76,6 +77,8 @@ export class QuickSettingsControlBlurSurface {
             this._surfaceActor.reactive = false;
             this._surfaceActor.can_focus = false;
             this._surfaceActor.track_hover = false;
+            this.runtime._perfCount('blur_surfaces.created');
+            this.runtime._perfCount('blur_effects.created');
         }
         return Boolean(this._surfaceActor);
     }
@@ -105,6 +108,7 @@ export class QuickSettingsControlBlurSurface {
 
         this._surfaceActor = null;
         this._bg_manager = null;
+        this._lastRect = null;
     }
 
     sync() {
@@ -113,6 +117,10 @@ export class QuickSettingsControlBlurSurface {
 
         if (!this.layer.isOpen() || !this.actor)
             return;
+        if (this.runtime.isOverlayWorkSuspended() && !this._shown) {
+            this.runtime._perfCount('surfaces.create_blocked_suspended');
+            return;
+        }
 
         if (!this._isReadyForOpen()) {
             this._destroySurface();
@@ -146,8 +154,19 @@ export class QuickSettingsControlBlurSurface {
         const localY = Math.round(targetRect.y);
         const localWidth = Math.max(1, Math.round(targetRect.width));
         const localHeight = Math.max(1, Math.round(targetRect.height));
+        const nextRect = { x: localX, y: localY, width: localWidth, height: localHeight };
+
+        if (this._lastRect &&
+            this._lastRect.x === nextRect.x &&
+            this._lastRect.y === nextRect.y &&
+            this._lastRect.width === nextRect.width &&
+            this._lastRect.height === nextRect.height) {
+            this.runtime._perfCount('geometry.sync_skipped');
+            return;
+        }
 
         try {
+            this._lastRect = nextRect;
             this._surfaceActor.x = localX;
             this._surfaceActor.y = localY;
             this._surfaceActor.width = localWidth;
@@ -166,6 +185,7 @@ export class QuickSettingsControlBlurSurface {
             }
 
             this._bg_manager?._bms_pipeline?.repaint_effect?.();
+            this.runtime._perfCount('geometry.sync_applied');
         } catch (e) {
             this.runtime._logSkipOnce('quick-settings', this.actor, `geometry sync failed: ${e}`);
             this._destroySurface();

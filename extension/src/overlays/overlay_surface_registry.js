@@ -16,6 +16,8 @@ import {
 import { PopupOverlayController } from './popup_overlay_controller.js';
 import { QuickSettingsControlBlurLayer } from './quick_settings_control_layer.js';
 
+const REGISTRY_REFRESH_DEBOUNCE_MS = 100;
+
 export class OverlaySurfaceRegistry {
     constructor(runtime) {
         this.runtime = runtime;
@@ -23,39 +25,27 @@ export class OverlaySurfaceRegistry {
         this._actorControllers = new Map();
         this._quickSettingsControlLayer = null;
         this._disposables = new DisposableStore();
+        this._broadWatcherDisposables = new DisposableStore();
+        this._broadWatchersEnabled = false;
         this._refresh_source_id = 0;
     }
 
     init() {
-        this._connect(Main.layoutManager.uiGroup, 'child-added', (_group, actor) => {
-            if (!isManagedOverlayActor(actor))
-                this.queueRefresh();
-        });
-        this._connect(Main.layoutManager.uiGroup, 'child-removed', (_group, actor) => {
-            if (!isManagedOverlayActor(actor))
-                this.queueRefresh();
-        });
-        this._connect(global.stage, 'child-added', (_group, actor) => {
-            if (!isManagedOverlayActor(actor))
-                this.queueRefresh();
-        });
-        this._connect(global.stage, 'child-removed', (_group, actor) => {
-            if (!isManagedOverlayActor(actor))
-                this.queueRefresh();
-        });
-        this._connect(Main.layoutManager, 'monitors-changed', () => this.queueRefresh());
+        this._connect(Main.layoutManager, 'monitors-changed', () => this.queueRefresh('monitors-changed'));
 
         for (const panelBox of [Main.panel?._leftBox, Main.panel?._centerBox, Main.panel?._rightBox].filter(Boolean)) {
-            this._connect(panelBox, 'child-added', () => this.queueRefresh());
-            this._connect(panelBox, 'child-removed', () => this.queueRefresh());
+            this._connect(panelBox, 'child-added', () => this.queueRefresh('panel-box-child-added'));
+            this._connect(panelBox, 'child-removed', () => this.queueRefresh('panel-box-child-removed'));
         }
 
+        this._syncBroadActorWatchers();
         this.rebuild(true);
     }
 
     destroy() {
         this._refresh_source_id = 0;
         this._disposables.dispose();
+        this._broadWatcherDisposables.dispose();
 
         for (const controller of this._popupControllers.values())
             controller.destroy();
@@ -66,35 +56,138 @@ export class OverlaySurfaceRegistry {
         this._popupControllers.clear();
         this._actorControllers.clear();
         this._quickSettingsControlLayer = null;
+        this._broadWatchersEnabled = false;
     }
 
     _connect(obj, signal, callback) {
+        this._connectWithStore(this._disposables, obj, signal, callback);
+    }
+
+    _connectWithStore(store, obj, signal, callback) {
         try {
-            this._disposables.addSignal(obj, signal, callback);
+            store.addSignal(obj, signal, callback);
         } catch (e) {
             this.runtime._warn(`failed to connect registry signal ${signal}: ${e}`);
         }
     }
 
-    queueRefresh() {
+    _needsTreeScan() {
+        return Boolean(this.runtime.isTargetEnabled('desktop-menus') ||
+            this.runtime.isTargetEnabled('app-menus'));
+    }
+
+    _syncBroadActorWatchers() {
+        const shouldEnable = this._needsTreeScan();
+        if (shouldEnable === this._broadWatchersEnabled)
+            return;
+
+        this._broadWatcherDisposables.dispose();
+        this._broadWatcherDisposables = new DisposableStore();
+        this._broadWatchersEnabled = shouldEnable;
+
+        if (!shouldEnable)
+            return;
+
+        this._connectWithStore(this._broadWatcherDisposables, Main.layoutManager.uiGroup,
+            'child-added', (_group, actor) => this._onBroadActorMutation(actor, 'uiGroup-added'));
+        this._connectWithStore(this._broadWatcherDisposables, Main.layoutManager.uiGroup,
+            'child-removed', (_group, actor) => this._onBroadActorMutation(actor, 'uiGroup-removed'));
+        this._connectWithStore(this._broadWatcherDisposables, global.stage,
+            'child-added', (_group, actor) => this._onBroadActorMutation(actor, 'stage-added'));
+        this._connectWithStore(this._broadWatcherDisposables, global.stage,
+            'child-removed', (_group, actor) => this._onBroadActorMutation(actor, 'stage-removed'));
+    }
+
+    _onBroadActorMutation(actor, reason) {
+        if (isManagedOverlayActor(actor))
+            return;
+        if (!this._isLikelyMenuCandidate(actor))
+            return;
+
+        this.queueRefresh(`broad-${reason}`);
+    }
+
+    _isLikelyMenuCandidate(actor) {
+        if (!actor)
+            return false;
+
+        let styleClass = '';
+        let actorName = '';
+        try {
+            styleClass = (actor.get_style_class_name?.() ?? '').toLowerCase();
+            actorName = (actor.get_name?.() ?? '').toLowerCase();
+        } catch {
+            return false;
+        }
+
+        if (styleClass.includes('background-menu') || styleClass.includes('window-menu') ||
+            styleClass.includes('app-menu') || styleClass.includes('popup-menu'))
+            return true;
+
+        if (styleClass.includes('menu') || actorName.includes('menu') || actorName.includes('popup'))
+            return true;
+
+        return Boolean(actor._boxPointer || actor._delegate?.box);
+    }
+
+    queueRefresh(reason = 'generic') {
+        if (this.runtime.isOverlayWorkSuspended()) {
+            this.runtime._perfCount('registry.refresh_skipped_suspended');
+            this.runtime._markPendingOverlayRefresh(reason);
+            return;
+        }
+
         if (this._refresh_source_id)
             return;
 
-        this._refresh_source_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 32, () => {
+        this.runtime._perfCount('registry.refresh_count');
+        this._refresh_source_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, REGISTRY_REFRESH_DEBOUNCE_MS, () => {
             this._refresh_source_id = 0;
             if (!this.runtime.enabled)
                 return GLib.SOURCE_REMOVE;
+            if (this.runtime.isOverlayWorkSuspended()) {
+                this.runtime._perfCount('registry.refresh_skipped_suspended');
+                this.runtime._markPendingOverlayRefresh(`${reason}-timeout`);
+                return GLib.SOURCE_REMOVE;
+            }
 
             this.rebuild(false);
             return GLib.SOURCE_REMOVE;
         });
         this._disposables.addSource(this._refresh_source_id);
+
+        if (this.runtime.settings.DEBUG)
+            this.runtime._log(`queued overlay refresh (${reason})`);
     }
 
     rebuild(forceGeometrySync) {
+        this._syncBroadActorWatchers();
+
+        if (this.runtime.isOverlayWorkSuspended()) {
+            this.runtime._perfCount('registry.rebuild_suspended');
+            this._syncExistingControllers();
+            return;
+        }
+
+        this.runtime._perfCount('registry.rebuild_count');
+        const rebuildStart = this.runtime._perfStart();
+
         this._rebuildPopupControllers(forceGeometrySync);
         this._rebuildQuickSettingsControlLayer(forceGeometrySync);
         this._rebuildActorControllers(forceGeometrySync);
+
+        this.runtime._perfSet('registry.popup_controller_count', this._popupControllers.size);
+        this.runtime._perfSet('registry.actor_controller_count', this._actorControllers.size);
+        this.runtime._perfEnd('registry.rebuild', rebuildStart,
+            `popup=${this._popupControllers.size} actor=${this._actorControllers.size}`);
+    }
+
+    _syncExistingControllers() {
+        for (const controller of this._popupControllers.values())
+            controller.sync();
+        for (const controller of this._actorControllers.values())
+            controller.sync();
+        this._quickSettingsControlLayer?.sync();
     }
 
     isTrackedMenu(menu) {
@@ -121,6 +214,7 @@ export class OverlaySurfaceRegistry {
         if (!controller) {
             controller = new PopupOverlayController(this.runtime, { id, ...options });
             this._popupControllers.set(id, controller);
+            this.runtime._perfCount('controllers.created');
             controller.enable();
         }
 
@@ -135,6 +229,7 @@ export class OverlaySurfaceRegistry {
         if (!controller) {
             controller = new OverlaySurfaceController(this.runtime, { id, ...options });
             this._actorControllers.set(id, controller);
+            this.runtime._perfCount('controllers.created');
             controller.enable();
         }
 
@@ -153,6 +248,7 @@ export class OverlaySurfaceRegistry {
                     // Controllers can already be mid-teardown when Shell disposes them.
                 }
                 map.delete(id);
+                this.runtime._perfCount('controllers.destroyed');
             }
         }
     }
@@ -206,6 +302,7 @@ export class OverlaySurfaceRegistry {
         if (!enabled) {
             this._quickSettingsControlLayer?.destroy();
             this._quickSettingsControlLayer = null;
+            this.runtime._perfSet('quick-settings.surface-count', 0);
             return;
         }
 
@@ -259,6 +356,23 @@ export class OverlaySurfaceRegistry {
             });
         }
 
+        if (this._needsTreeScan())
+            this._rebuildTreeScannedMenuControllers(keep, forceGeometrySync);
+
+        this._pruneControllers(this._actorControllers, keep);
+    }
+
+    _rebuildTreeScannedMenuControllers(keep, forceGeometrySync) {
+        const desktopMenusEnabled = this.runtime.isTargetEnabled('desktop-menus');
+        const appMenusEnabled = this.runtime.isTargetEnabled('app-menus');
+
+        if (!desktopMenusEnabled && !appMenusEnabled)
+            return;
+
+        this.runtime._perfCount('registry.tree_scan_count');
+        const treeScanStart = this.runtime._perfStart();
+        let scannedActors = 0;
+
         const scanRoots = [Main.layoutManager.uiGroup, global.stage].filter(Boolean);
         for (const root of scanRoots) {
             const stack = [root];
@@ -267,13 +381,15 @@ export class OverlaySurfaceRegistry {
                 if (!actor)
                     continue;
 
+                scannedActors++;
+
                 let styleClass = '';
                 try {
                     styleClass = actor.get_style_class_name?.() ?? '';
                 } catch {
                     continue;
                 }
-                if (this.runtime.isTargetEnabled('desktop-menus') && styleClass.includes('background-menu')) {
+                if (desktopMenusEnabled && styleClass.includes('background-menu')) {
                     let signature = '';
                     try {
                         signature = actorSignature(actor);
@@ -289,7 +405,7 @@ export class OverlaySurfaceRegistry {
                     }, forceGeometrySync);
                 }
 
-                if (this.runtime.isTargetEnabled('app-menus') && !isDhruvaContextMenuOverlayActor(actor) &&
+                if (appMenusEnabled && !isDhruvaContextMenuOverlayActor(actor) &&
                     (styleClass.includes('window-menu') || styleClass.includes('app-menu'))) {
                     let signature = '';
                     try {
@@ -316,6 +432,7 @@ export class OverlaySurfaceRegistry {
             }
         }
 
-        this._pruneControllers(this._actorControllers, keep);
+        this.runtime._perfCount('registry.actors_scanned', scannedActors);
+        this.runtime._perfEnd('registry.tree_scan', treeScanStart, `actors=${scannedActors}`);
     }
 }

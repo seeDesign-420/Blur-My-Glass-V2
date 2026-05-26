@@ -4,13 +4,16 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { DisposableStore } from '../runtime/disposable_store.js';
 import {
-    GEOMETRY_SIGNALS,
     OPEN_ANIMATION_DURATION_MS,
     CLOSE_ANIMATION_DURATION_MS,
 } from './constants.js';
-import { hasPositiveTransformedSize } from './geometry.js';
+import { getTransformSize, hasPositiveTransformedSize } from './geometry.js';
 import { collectQuickSettingsControls } from './actor_utils.js';
 import { QuickSettingsControlBlurSurface } from './quick_settings_control_surface.js';
+
+const MAX_QUICK_SETTINGS_CONTROL_SURFACES = 12;
+const MIN_QUICK_SETTINGS_CONTROL_AREA = 900;
+const QUICK_SETTINGS_REFRESH_DEBOUNCE_MS = 48;
 
 export class QuickSettingsControlBlurLayer {
     constructor(runtime, menu) {
@@ -26,6 +29,7 @@ export class QuickSettingsControlBlurLayer {
         this._overlayContainer = null;
         this._grid = null;
         this._shown = false;
+        this._openSettled = false;
         this.destroyed = false;
     }
 
@@ -36,9 +40,9 @@ export class QuickSettingsControlBlurLayer {
         this._connect(this.menu, 'open-state-changed', (_menu, open) => {
             if (open) {
                 this._cancelCloseHide();
-                this.queueRefresh();
                 this._scheduleOpenRefresh();
             } else {
+                this._openSettled = false;
                 this._scheduleCloseHide();
             }
         });
@@ -46,7 +50,10 @@ export class QuickSettingsControlBlurLayer {
         if (this.menu.actor)
             this._connect(this.menu.actor, 'destroy', () => this.destroy());
 
-        this.sync();
+        if (this.isOpen()) {
+            this._openSettled = true;
+            this.sync();
+        }
     }
 
     isOpen() {
@@ -140,8 +147,14 @@ export class QuickSettingsControlBlurLayer {
     queueRefresh() {
         if (this._refresh_source_id || this.destroyed)
             return;
+        if (!this.isOpen() || !this._openSettled)
+            return;
+        if (this.runtime.isOverlayWorkSuspended()) {
+            this.runtime._perfCount('quick-settings.refresh_skipped_suspended');
+            return;
+        }
 
-        this._refresh_source_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 32, () => {
+        this._refresh_source_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, QUICK_SETTINGS_REFRESH_DEBOUNCE_MS, () => {
             this._refresh_source_id = 0;
             if (!this.destroyed && this.runtime.enabled)
                 this.sync();
@@ -154,9 +167,11 @@ export class QuickSettingsControlBlurLayer {
         if (this._open_source_id)
             GLib.source_remove(this._open_source_id);
 
+        this._openSettled = false;
         this._open_source_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, OPEN_ANIMATION_DURATION_MS, () => {
             this._open_source_id = 0;
-            if (!this.destroyed)
+            this._openSettled = this.isOpen();
+            if (!this.destroyed && this._openSettled)
                 this.sync();
             return GLib.SOURCE_REMOVE;
         });
@@ -183,6 +198,7 @@ export class QuickSettingsControlBlurLayer {
         for (const surface of this._surfaces.values())
             surface.destroy();
         this._surfaces.clear();
+        this.runtime._perfSet('quick-settings.surface-count', 0);
 
         if (this._overlayContainer?.get_parent?.()) {
             try {
@@ -222,12 +238,36 @@ export class QuickSettingsControlBlurLayer {
             surface = new QuickSettingsControlBlurSurface(this.runtime, this, actor, shape, id);
             this._surfaces.set(actor, surface);
             surface.enable();
+            this.runtime._perfCount('quick-settings.surfaces_created');
             return surface;
         }
 
         surface.shape = shape;
         surface.sync();
         return surface;
+    }
+
+    _isEligiblePerControlActor(actor) {
+        if (!actor || !actor.visible || !actor.mapped)
+            return false;
+
+        const [width, height] = getTransformSize(actor);
+        return (width * height) >= MIN_QUICK_SETTINGS_CONTROL_AREA;
+    }
+
+    _collectSurfaceCandidates(grid) {
+        const controls = [];
+        for (const { actor, shape } of collectQuickSettingsControls(grid)) {
+            if (!this._isEligiblePerControlActor(actor))
+                continue;
+
+            controls.push({ actor, shape });
+            if (controls.length >= MAX_QUICK_SETTINGS_CONTROL_SURFACES) {
+                this.runtime._perfCount('quick-settings.surface_cap_hits');
+                break;
+            }
+        }
+        return controls;
     }
 
     sync() {
@@ -244,22 +284,28 @@ export class QuickSettingsControlBlurLayer {
             return;
         }
 
+        if (!this._openSettled)
+            return;
+
+        if (this.runtime.isOverlayWorkSuspended()) {
+            this.runtime._perfCount('surfaces.create_blocked_suspended');
+            return;
+        }
+
         this._cancelCloseHide();
 
         const grid = this._resolveGrid();
         this._connectGridSignals(grid);
-        if (!grid || !hasPositiveTransformedSize(grid)) {
+
+        if (!grid || !hasPositiveTransformedSize(grid) || !this._ensureOverlayContainer()) {
             this._destroySurfaces();
             return;
         }
 
-        if (!this._ensureOverlayContainer())
-            return;
-
         this._shown = true;
 
         const keepActors = new Set();
-        for (const { actor, shape } of collectQuickSettingsControls(grid)) {
+        for (const { actor, shape } of this._collectSurfaceCandidates(grid)) {
             keepActors.add(actor);
             this._upsertSurface(actor, shape);
         }
@@ -273,6 +319,8 @@ export class QuickSettingsControlBlurLayer {
 
         for (const surface of this._surfaces.values())
             surface.sync();
+
+        this.runtime._perfSet('quick-settings.surface-count', this._surfaces.size);
     }
 
     destroy() {
@@ -283,6 +331,7 @@ export class QuickSettingsControlBlurLayer {
         this._refresh_source_id = 0;
         this._open_source_id = 0;
         this._close_source_id = 0;
+        this._openSettled = false;
         this._disposables.dispose();
         this._gridDisposables.dispose();
         this._destroySurfaces();

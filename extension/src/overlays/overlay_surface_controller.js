@@ -38,6 +38,7 @@ export class OverlaySurfaceController {
         this._open_source_id = 0;
         this._shown = false;
         this.destroyed = false;
+        this._lastRect = null;
         this._geometryDisposables = new DisposableStore();
         this._geometryTracker = new BlurGeometryTracker(this._geometryDisposables, () => this.syncGeometry());
     }
@@ -164,6 +165,11 @@ export class OverlaySurfaceController {
             return;
         }
 
+        if (this.runtime.isOverlayWorkSuspended() && !this._shown) {
+            this.runtime._perfCount('surfaces.create_blocked_suspended');
+            return;
+        }
+
         this._cancelTimers();
         this.show();
         this._scheduleOpenSync();
@@ -173,6 +179,10 @@ export class OverlaySurfaceController {
     show() {
         if (this._shown)
             return;
+        if (this.runtime.isOverlayWorkSuspended()) {
+            this.runtime._perfCount('surfaces.create_blocked_suspended');
+            return;
+        }
 
         const parent = this.insertActor?.get_parent?.();
         if (!parent)
@@ -195,6 +205,7 @@ export class OverlaySurfaceController {
 
     hide() {
         this._shown = false;
+        this._lastRect = null;
         this._parentSignals.dispose();
         this._parentSignals = new DisposableStore();
 
@@ -237,6 +248,10 @@ export class OverlaySurfaceController {
             this.background_group,
             `bms-overlay-${this.id}-blurred-widget`
         );
+        if (this.background_actor) {
+            this.runtime._perfCount('blur_surfaces.created');
+            this.runtime._perfCount('blur_effects.created');
+        }
     }
 
     _destroyBackground() {
@@ -269,6 +284,7 @@ export class OverlaySurfaceController {
         this.background_group = null;
         this.background_actor = null;
         this.bg_manager = null;
+        this._lastRect = null;
     }
 
     syncGeometry() {
@@ -291,8 +307,19 @@ export class OverlaySurfaceController {
         const localY = Math.round(targetRect.y);
         const localWidth = Math.max(1, Math.round(targetRect.width));
         const localHeight = Math.max(1, Math.round(targetRect.height));
+        const nextRect = { x: localX, y: localY, width: localWidth, height: localHeight };
+
+        if (this._lastRect &&
+            this._lastRect.x === nextRect.x &&
+            this._lastRect.y === nextRect.y &&
+            this._lastRect.width === nextRect.width &&
+            this._lastRect.height === nextRect.height) {
+            this.runtime._perfCount('geometry.sync_skipped');
+            return;
+        }
 
         try {
+            this._lastRect = nextRect;
             this.background_group.x = localX;
             this.background_group.y = localY;
             this.background_group.width = localWidth;
@@ -304,6 +331,7 @@ export class OverlaySurfaceController {
             this.background_actor.set_clip(0, 0, localWidth, localHeight);
 
             this.bg_manager?._bms_pipeline?.repaint_effect?.();
+            this.runtime._perfCount('geometry.sync_applied');
         } catch (e) {
             this.runtime._logSkipOnce(this.target, this.surfaceActor, `geometry sync failed: ${e}`);
             this.hide();

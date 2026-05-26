@@ -2,7 +2,11 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import * as BoxPointer from 'resource:///org/gnome/shell/ui/boxpointer.js';
 
-import { resolvePopupContentActor, getOpenStateActor } from './actor_utils.js';
+import {
+    resolvePopupContentActor,
+    getOpenStateActor,
+    isDhruvaContextMenuOverlayActor,
+} from './actor_utils.js';
 import { PopupOverlayController } from './popup_overlay_controller.js';
 
 export class PopupHookManager {
@@ -63,8 +67,13 @@ export class PopupHookManager {
     }
 
     syncAll() {
-        for (const controller of this._dynamicMenus.values())
+        for (const [menu, controller] of this._dynamicMenus.entries()) {
+            if (!this.runtime.isTargetEnabled(controller.target) && !menu?.isOpen) {
+                this._untrackDynamicMenu(menu);
+                continue;
+            }
             controller.sync();
+        }
     }
 
     _isTrackedMenu(menu) {
@@ -77,6 +86,10 @@ export class PopupHookManager {
     _isEligibleDynamicMenu(menu) {
         if (!menu?.actor || !menu?.box)
             return false;
+        if (this.runtime.isOverlayWorkSuspended())
+            return false;
+        if (isDhruvaContextMenuOverlayActor(menu.actor))
+            return false;
 
         if (this._isTrackedMenu(menu))
             return false;
@@ -88,14 +101,22 @@ export class PopupHookManager {
         return parent === Main.layoutManager.uiGroup;
     }
 
+    _resolveDynamicTarget(menu) {
+        const styleClass = menu?.actor?.get_style_class_name?.() ?? '';
+        if (styleClass.includes('background-menu'))
+            return 'desktop-menus';
+        if (styleClass.includes('window-menu') || styleClass.includes('app-menu'))
+            return 'app-menus';
+        return 'panel-menus';
+    }
+
     _maybeTrackDynamicMenu(menu) {
         if (!this._isEligibleDynamicMenu(menu))
             return;
 
-        const styleClass = menu.actor.get_style_class_name?.() ?? '';
-        const target = styleClass.includes('background-menu')
-            ? 'desktop-menus'
-            : 'panel-menus';
+        const target = this._resolveDynamicTarget(menu);
+        if (!this.runtime.isTargetEnabled(target))
+            return;
 
         const content = resolvePopupContentActor(menu.actor);
         if (!content)
@@ -112,6 +133,7 @@ export class PopupHookManager {
         });
 
         this._dynamicMenus.set(menu, controller);
+        this.runtime._perfCount('controllers.created');
         controller.enable();
     }
 
@@ -122,5 +144,6 @@ export class PopupHookManager {
 
         controller.destroy();
         this._dynamicMenus.delete(menu);
+        this.runtime._perfCount('controllers.destroyed');
     }
 }
