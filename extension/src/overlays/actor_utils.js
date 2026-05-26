@@ -184,8 +184,12 @@ export function isDhruvaContextMenuOverlayActor(actor) {
     if (!actor)
         return false;
 
-    const styleClass = actor.get_style_class_name?.() ?? '';
-    return styleClass.includes('context-menu-overlay');
+    try {
+        const styleClass = actor.get_style_class_name?.() ?? '';
+        return styleClass.includes('context-menu-overlay');
+    } catch {
+        return false;
+    }
 }
 
 export function getOpenStateActor(menu, popupContent) {

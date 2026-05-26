@@ -147,7 +147,11 @@ export class OverlaySurfaceRegistry {
     _pruneControllers(map, keepIds) {
         for (const [id, controller] of map.entries()) {
             if (!keepIds.has(id)) {
-                controller.destroy();
+                try {
+                    controller.destroy();
+                } catch {
+                    // Controllers can already be mid-teardown when Shell disposes them.
+                }
                 map.delete(id);
             }
         }
@@ -276,9 +280,20 @@ export class OverlaySurfaceRegistry {
                 if (!actor)
                     continue;
 
-                const styleClass = actor.get_style_class_name?.() ?? '';
+                let styleClass = '';
+                try {
+                    styleClass = actor.get_style_class_name?.() ?? '';
+                } catch {
+                    continue;
+                }
                 if (this.runtime.isTargetEnabled('desktop-menus') && styleClass.includes('background-menu')) {
-                    const id = `desktop-menu-${actorSignature(actor)}`;
+                    let signature = '';
+                    try {
+                        signature = actorSignature(actor);
+                    } catch {
+                        continue;
+                    }
+                    const id = `desktop-menu-${signature}`;
                     keep.add(id);
                     this._upsertActorController(id, {
                         target: 'desktop-menus',
@@ -289,7 +304,13 @@ export class OverlaySurfaceRegistry {
 
                 if (this.runtime.isTargetEnabled('app-menus') && !isDhruvaContextMenuOverlayActor(actor) &&
                     (styleClass.includes('window-menu') || styleClass.includes('app-menu'))) {
-                    const id = `app-menu-${actorSignature(actor)}`;
+                    let signature = '';
+                    try {
+                        signature = actorSignature(actor);
+                    } catch {
+                        continue;
+                    }
+                    const id = `app-menu-${signature}`;
                     keep.add(id);
                     this._upsertActorController(id, {
                         target: 'app-menus',
@@ -298,9 +319,13 @@ export class OverlaySurfaceRegistry {
                     }, forceGeometrySync);
                 }
 
-                const children = actor.get_children?.();
-                if (children?.length)
-                    stack.push(...children);
+                try {
+                    const children = actor.get_children?.();
+                    if (children?.length)
+                        stack.push(...children);
+                } catch {
+                    continue;
+                }
             }
         }
 

@@ -199,9 +199,16 @@ export class OverlaySurfaceController {
         this._parentSignals.dispose();
         this._parentSignals = new DisposableStore();
 
-        if (this.background_group?.get_parent?.()) {
+        let parent = null;
+        try {
+            parent = this.background_group?.get_parent?.() ?? null;
+        } catch {
+            parent = null;
+        }
+
+        if (parent) {
             try {
-                this.background_group.get_parent().remove_child(this.background_group);
+                parent.remove_child(this.background_group);
             } catch {
                 // Ignore detach failures.
             }
@@ -251,9 +258,15 @@ export class OverlaySurfaceController {
     }
 
     _destroyBackground() {
-        if (this.bg_manager?._bms_pipeline) {
+        let pipeline = null;
+        try {
+            pipeline = this.bg_manager?._bms_pipeline ?? null;
+        } catch {
+            pipeline = null;
+        }
+        if (pipeline) {
             try {
-                this.bg_manager._bms_pipeline.destroy();
+                pipeline.destroy();
             } catch {
                 // Ignore pipeline destruction errors.
             }
