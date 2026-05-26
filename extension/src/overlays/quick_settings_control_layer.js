@@ -234,8 +234,7 @@ export class QuickSettingsControlBlurLayer {
         if (this.destroyed)
             return;
 
-        if (!this.runtime.isTargetEnabled('quick-settings') ||
-            this.runtime.settings.overlays.STATIC_BLUR) {
+        if (!this.runtime.isTargetEnabled('quick-settings')) {
             this._destroySurfaces();
             return;
         }

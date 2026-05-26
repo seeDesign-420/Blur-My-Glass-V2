@@ -4,7 +4,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { WorkspaceAnimationController } from 'resource:///org/gnome/shell/ui/workspaceAnimation.js';
 const wac_proto = WorkspaceAnimationController.prototype;
 
-import { Pipeline } from '../conveniences/pipeline.js';
+import { DynamicBlurPipeline } from '../blur/dynamic_blur_pipeline.js';
 
 const OVERVIEW_COMPONENTS_STYLE = [
     "overview-components-light",
@@ -152,25 +152,38 @@ export const OverviewBlur = class OverviewBlur {
         this.remove_background_actors();
         // create new backgrounds for the overview and the animation
         for (let i = 0; i < Main.layoutManager.monitors.length; i++) {
-            const pipeline_overview = new Pipeline(
+            const monitor = Main.layoutManager.monitors[i];
+            const pipeline_overview = new DynamicBlurPipeline(
                 this.effects_manager,
-                global.blur_my_shell._pipelines_manager,
-                this.settings.overview.PIPELINE
+                this.settings.overview
             );
-            pipeline_overview.create_background_with_effects(
-                i, this.overview_background_managers,
-                this.overview_background_group, 'bms-overview-blurred-widget'
+            const [overview_actor, overview_bg_manager] = pipeline_overview.create_background_with_effect(
+                this.overview_background_group,
+                'bms-overview-blurred-widget'
             );
+            overview_bg_manager._monitorIndex = i;
+            overview_actor.x = monitor.x;
+            overview_actor.y = monitor.y;
+            overview_actor.width = monitor.width;
+            overview_actor.height = monitor.height;
+            overview_actor.set_clip(0, 0, monitor.width, monitor.height);
+            this.overview_background_managers.push(overview_bg_manager);
 
-            const pipeline_animation = new Pipeline(
+            const pipeline_animation = new DynamicBlurPipeline(
                 this.effects_manager,
-                global.blur_my_shell._pipelines_manager,
-                this.settings.overview.PIPELINE
+                this.settings.overview
             );
-            pipeline_animation.create_background_with_effects(
-                i, this.animation_background_managers,
-                this.animation_background_group, 'bms-animation-blurred-widget'
+            const [animation_actor, animation_bg_manager] = pipeline_animation.create_background_with_effect(
+                this.animation_background_group,
+                'bms-animation-blurred-widget'
             );
+            animation_bg_manager._monitorIndex = i;
+            animation_actor.x = monitor.x;
+            animation_actor.y = monitor.y;
+            animation_actor.width = monitor.width;
+            animation_actor.height = monitor.height;
+            animation_actor.set_clip(0, 0, monitor.width, monitor.height);
+            this.animation_background_managers.push(animation_bg_manager);
         }
         // add the container widget for the overview only to the overview group
         Main.layoutManager.overviewGroup.insert_child_at_index(this.overview_background_group, 0);

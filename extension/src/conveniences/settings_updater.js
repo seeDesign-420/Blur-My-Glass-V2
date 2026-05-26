@@ -16,17 +16,20 @@ export function update_from_old_settings(gsettings) {
             preferences.HACKS_LEVEL = 1;
 
         preferences.dhruva.BLUR = true;
-        preferences.dhruva.STATIC_BLUR = false;
 
         // 'customize' has been removed: we merge the current used settings
-        ['appfolder', 'panel', 'dhruva', 'applications', 'window_list'].forEach(
+        ['appfolder', 'panel', 'dhruva', 'applications'].forEach(
             component_name => {
                 const deprecated_component = deprecated_preferences[component_name];
                 const new_component = preferences[component_name];
                 if (deprecated_component && !deprecated_component.CUSTOMIZE) {
                     new_component.SIGMA = deprecated_preferences.SIGMA;
                     new_component.BRIGHTNESS = deprecated_preferences.BRIGHTNESS;
-                    new_component.CORNER_RADIUS = deprecated_preferences.CORNER_RADIUS;
+                    if (
+                        new_component.CORNER_RADIUS !== undefined &&
+                        deprecated_component.CORNER_RADIUS !== undefined
+                    )
+                        new_component.CORNER_RADIUS = deprecated_component.CORNER_RADIUS;
                 }
             });
 

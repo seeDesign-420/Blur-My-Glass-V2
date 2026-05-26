@@ -140,7 +140,7 @@ let _zoomAndFadeOut = function () {
 
 
 export const AppFoldersBlur = class AppFoldersBlur {
-    // we do not use the effects manager and dummy pipelines here because we
+    // we do not use the shared dynamic pipeline here because we
     // really want to manage our sigma value ourself during the transition
     constructor(connections, settings, _) {
         this.connections = connections;

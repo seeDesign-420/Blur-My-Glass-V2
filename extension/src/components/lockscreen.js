@@ -1,7 +1,7 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { UnlockDialog } from 'resource:///org/gnome/shell/ui/unlockDialog.js';
 
-import { Pipeline } from '../conveniences/pipeline.js';
+import { DynamicBlurPipeline } from '../blur/dynamic_blur_pipeline.js';
 
 const original_createBackground =
     UnlockDialog.prototype._createBackground;
@@ -37,17 +37,25 @@ export const LockscreenBlur = class LockscreenBlur {
     }
 
     _createBackground(monitor_index) {
-        let pipeline = new Pipeline(
-            global.blur_my_shell._effects_manager, global.blur_my_shell._pipelines_manager,
-            global.blur_my_shell._settings.lockscreen.PIPELINE
-        );
+        const monitor = Main.layoutManager.monitors[monitor_index];
+        if (!monitor)
+            return;
 
-        pipeline.create_background_with_effects(
-            monitor_index,
-            this._bgManagers,
-            this._backgroundGroup,
-            "screen-shield-background"
+        const pipeline = new DynamicBlurPipeline(
+            global.blur_my_shell._effects_manager,
+            global.blur_my_shell._settings.lockscreen
         );
+        const [background, bg_manager] = pipeline.create_background_with_effect(
+            this._backgroundGroup,
+            'screen-shield-background'
+        );
+        background.x = monitor.x;
+        background.y = monitor.y;
+        background.width = monitor.width;
+        background.height = monitor.height;
+        background.set_clip(0, 0, monitor.width, monitor.height);
+        bg_manager._monitorIndex = monitor_index;
+        this._bgManagers.push(bg_manager);
     }
 
     _updateBackgroundEffects() {

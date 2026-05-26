@@ -13,6 +13,30 @@ journalctl --user -f /usr/bin/gnome-shell
 
 3. Keep extension logs visible while testing.
 
+4. Run the automated smoke baseline first:
+
+```bash
+./scripts/runtime-smoke-check.sh blur-my-glass@seedesign-420 "3 minutes ago"
+```
+
+Expected: script exits `0` and prints `runtime-smoke-check.sh: passed`.
+
+5. Run lifecycle stress baseline:
+
+```bash
+./scripts/runtime-lifecycle-stress.sh blur-my-glass@seedesign-420 5 0.5
+```
+
+Expected: script exits `0` and prints `runtime-lifecycle-stress.sh: passed`.
+
+6. Capture an evidence bundle:
+
+```bash
+./scripts/collect-runtime-evidence.sh blur-my-glass@seedesign-420 "3 minutes ago"
+```
+
+Expected: script prints a path under `docs/runtime-evidence/` and creates a timestamped `.md` report.
+
 ## Basic Lifecycle
 
 1. Enable Blur My Glass.

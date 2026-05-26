@@ -8,47 +8,6 @@
             <default>1</default>
             <summary>The version of the settings to update from.</summary>
         </key>
-        <!-- PIPELINES -->
-        <key type="a{sa{sv}}" name="pipelines">
-            <default> <![CDATA[
-                {
-                    'pipeline_default': {
-                        'name': <'Default'>,
-                        'effects': <[
-                            <{
-                                'type': <'native_static_gaussian_blur'>,
-                                'id': <'effect_000000000000'>,
-                                'params': <{
-                                    'radius': <30>,
-                                    'brightness': <0.6>
-                                }>
-                            }>
-                        ]>
-                    },
-                    'pipeline_default_rounded': {
-                        'name': <'Default rounded'>,
-                        'effects': <[
-                            <{
-                                'type': <'native_static_gaussian_blur'>,
-                                'id': <'effect_000000000001'>,
-                                'params': <{
-                                    'radius': <30>,
-                                    'brightness': <0.6>
-                                }>
-                            }>,
-                            <{
-                                'type': <'corner'>,
-                                'id': <'effect_000000000002'>,
-                                'params': <{
-                                    'radius': <24>
-                                }>
-                            }>
-                        ]>
-                    }
-                }
-            ]]></default>
-            <summary>A dictionnary describing the different pipelines and their effects.</summary>
-        </key>
         <!-- SIGMA -->
         <key type="i" name="sigma">
             <default>30</default>
@@ -104,13 +63,9 @@
         <child name='overlays' schema='org.gnome.shell.extensions.blur-my-shell.overlays'></child>
         <child name='appfolder' schema='org.gnome.shell.extensions.blur-my-shell.appfolder'></child>
         <child name='panel' schema='org.gnome.shell.extensions.blur-my-shell.panel'></child>
-        <child name='dash-to-dock' schema='org.gnome.shell.extensions.blur-my-shell.dash-to-dock'></child>
         <child name='dhruva' schema='org.gnome.shell.extensions.blur-my-shell.dhruva'></child>
         <child name='applications' schema='org.gnome.shell.extensions.blur-my-shell.applications'></child>
-        <child name='screenshot' schema='org.gnome.shell.extensions.blur-my-shell.screenshot'></child>
         <child name='lockscreen' schema='org.gnome.shell.extensions.blur-my-shell.lockscreen'></child>
-        <child name='window-list' schema='org.gnome.shell.extensions.blur-my-shell.window-list'></child>
-        <child name='coverflow-alt-tab' schema='org.gnome.shell.extensions.blur-my-shell.coverflow-alt-tab'></child>
         <child name='hidetopbar' schema='org.gnome.shell.extensions.blur-my-shell.hidetopbar'></child>
         <child name='dash-to-panel' schema='org.gnome.shell.extensions.blur-my-shell.dash-to-panel'></child>
     </schema>
@@ -122,11 +77,6 @@
         <key type="b" name="blur">
             <default>true</default>
             <summary>Boolean, whether to blur activate the blur for this component or not</summary>
-        </key>
-        <!-- PIPELINE -->
-        <key type="s" name="pipeline">
-            <default>"pipeline_default"</default>
-            <summary>String, the name of the pipeline to use. It must exist, else "pipeline_default" will be used</summary>
         </key>
         <!-- CUSTOMIZE -->
         <key type="b" name="customize">
@@ -177,16 +127,6 @@
         <key type="b" name="blur">
             <default>true</default>
             <summary>Boolean, whether to blur activate the blur for this component or not</summary>
-        </key>
-        <!-- STATIC BLUR -->
-        <key type="b" name="static-blur">
-            <default>false</default>
-            <summary>Boolean, whether to use static or dynamic blur for this component</summary>
-        </key>
-        <!-- PIPELINE -->
-        <key type="s" name="pipeline">
-            <default>"pipeline_default"</default>
-            <summary>String, the name of the pipeline to use. It must exist, else "pipeline_default" will be used</summary>
         </key>
         <!-- SIGMA -->
         <key type="i" name="sigma">
@@ -313,11 +253,6 @@
             <default>true</default>
             <summary>Boolean, whether to blur activate the blur for this component or not</summary>
         </key>
-        <!-- PIPELINE -->
-        <key type="s" name="pipeline">
-            <default>"pipeline_default"</default>
-            <summary>String, the name of the pipeline to use. It must exist, else "pipeline_default" will be used</summary>
-        </key>
         <!-- CUSTOMIZE -->
         <key type="b" name="customize">
             <default>false</default>
@@ -357,11 +292,6 @@
         <key type="d" name="noise-lightness">
             <default>0.</default>
             <summary>Lightness of the noise added to the blur effect</summary>
-        </key>
-        <!-- STATIC BLUR -->
-        <key type="b" name="static-blur">
-            <default>true</default>
-            <summary>Boolean, whether to use a static or dynamic blur for this component</summary>
         </key>
         <!-- UNBLUR IN OVERVIEW -->
         <key type="b" name="unblur-in-overview">
@@ -390,80 +320,6 @@
         </key>
     </schema>
 
-    <!-- DASH TO DOCK -->
-    <schema id="org.gnome.shell.extensions.blur-my-shell.dash-to-dock"
-        path="/org/gnome/shell/extensions/blur-my-shell/dash-to-dock/">
-        <!-- BLUR -->
-        <key type="b" name="blur">
-            <default>true</default>
-            <summary>Boolean, whether to blur activate the blur for this component or not</summary>
-        </key>
-        <!-- PIPELINE -->
-        <key type="s" name="pipeline">
-            <default>"pipeline_default_rounded"</default>
-            <summary>String, the name of the pipeline to use. It must exist, else "pipeline_default" will be used</summary>
-        </key>
-        <!-- CUSTOMIZE -->
-        <key type="b" name="customize">
-            <default>false</default>
-            <summary>Boolean, whether to customize the blur effect sigma/brightness or use general values</summary>
-        </key>
-        <!-- SIGMA -->
-        <key type="i" name="sigma">
-            <default>30</default>
-            <summary>Gaussian sigma to use for the blur effect</summary>
-        </key>
-        <!-- BRIGHTNESS -->
-        <key type="d" name="brightness">
-            <default>0.6</default>
-            <summary>Brightness to use for the blur effect</summary>
-        </key>
-        <!-- VIBRANCY -->
-        <key type="d" name="vibrancy">
-            <default>0.</default>
-            <summary>Vibrancy to use for the blur effect</summary>
-        </key>
-        <!-- COLOR -->
-        <key type="(dddd)" name="color">
-            <default>(0.,0.,0.,0.)</default>
-            <summary>Color to mix with the blur effect</summary>
-        </key>
-        <!-- NOISE AMOUNT -->
-        <key type="d" name="noise-amount">
-            <default>0.</default>
-            <summary>Amount of noise to add to the blur effect</summary>
-        </key>
-        <!-- NOISE LIGHTNESS -->
-        <key type="d" name="noise-lightness">
-            <default>0.</default>
-            <summary>Lightness of the noise added to the blur effect</summary>
-        </key>
-        <!-- STATIC BLUR -->
-        <key type="b" name="static-blur">
-            <default>true</default>
-            <summary>Boolean, whether to use static or dynamic blur for this component</summary>
-        </key>
-        <!-- OVERRIDE BACKGROUND -->
-        <key type="b" name="override-background">
-            <default>true</default>
-            <summary>Boolean, whether to override the background or not</summary>
-        </key>
-        <!-- STYLE DASH TO DOCK -->
-        <key type="i" name="style-dash-to-dock">
-            <default>0</default>
-            <summary>Enum to select the style of dash to dock (0 transparent, 1 light, 2 dark)</summary>
-        </key>
-        <!-- UNBLUR IN OVERVIEW -->
-        <key type="b" name="unblur-in-overview">
-            <default>false</default>
-            <summary>Boolean, whether to disable blur from this component when opening the overview or not</summary>
-        </key>
-        <!-- CORNER RADIUS -->
-        <key type="i" name="corner-radius">
-            <default>18</default>
-            <summary>Radius for the corner rounding effect</summary>
-        </key>
-    </schema>
 
     <!-- DHRUVA -->
     <schema id="org.gnome.shell.extensions.blur-my-shell.dhruva"
@@ -472,16 +328,6 @@
         <key type="b" name="blur">
             <default>true</default>
             <summary>Boolean, whether to blur activate the blur for Dhruva dock or not</summary>
-        </key>
-        <!-- PIPELINE -->
-        <key type="s" name="pipeline">
-            <default>"pipeline_default_rounded"</default>
-            <summary>String, the name of the pipeline to use for Dhruva dock</summary>
-        </key>
-        <!-- STATIC BLUR -->
-        <key type="b" name="static-blur">
-            <default>false</default>
-            <summary>Boolean, whether to use static or dynamic blur for Dhruva dock</summary>
         </key>
         <!-- CUSTOMIZE -->
         <key type="b" name="customize">
@@ -532,16 +378,6 @@
         <key type="b" name="blur">
             <default>false</default>
             <summary>Boolean, whether to blur activate the blur for this component or not</summary>
-        </key>
-        <!-- PIPELINE -->
-        <key type="s" name="pipeline">
-            <default>"pipeline_default"</default>
-            <summary>String, the name of the pipeline to use. It must exist, else "pipeline_default" will be used</summary>
-        </key>
-        <!-- STATIC BLUR -->
-        <key type="b" name="static-blur">
-            <default>false</default>
-            <summary>Boolean, whether to use static or dynamic blur for this component</summary>
         </key>
         <!-- CUSTOMIZE -->
         <key type="b" name="customize">
@@ -635,55 +471,6 @@
         </key>
     </schema>
 
-    <!-- SCREENSHOT -->
-    <schema id="org.gnome.shell.extensions.blur-my-shell.screenshot"
-        path="/org/gnome/shell/extensions/blur-my-shell/screenshot/">
-        <!-- BLUR -->
-        <key type="b" name="blur">
-            <default>true</default>
-            <summary>Boolean, whether to blur activate the blur for this component or not</summary>
-        </key>
-        <!-- PIPELINE -->
-        <key type="s" name="pipeline">
-            <default>"pipeline_default"</default>
-            <summary>String, the name of the pipeline to use. It must exist, else "pipeline_default" will be used</summary>
-        </key>
-        <!-- CUSTOMIZE -->
-        <key type="b" name="customize">
-            <default>false</default>
-            <summary>Boolean, whether to customize the blur effect sigma/brightness or use general values</summary>
-        </key>
-        <!-- SIGMA -->
-        <key type="i" name="sigma">
-            <default>30</default>
-            <summary>Gaussian sigma to use for the blur effect</summary>
-        </key>
-        <!-- BRIGHTNESS -->
-        <key type="d" name="brightness">
-            <default>0.6</default>
-            <summary>Brightness to use for the blur effect</summary>
-        </key>
-        <!-- VIBRANCY -->
-        <key type="d" name="vibrancy">
-            <default>0.</default>
-            <summary>Vibrancy to use for the blur effect</summary>
-        </key>
-        <!-- COLOR -->
-        <key type="(dddd)" name="color">
-            <default>(0.,0.,0.,0.)</default>
-            <summary>Color to mix with the blur effect</summary>
-        </key>
-        <!-- NOISE AMOUNT -->
-        <key type="d" name="noise-amount">
-            <default>0.</default>
-            <summary>Amount of noise to add to the blur effect</summary>
-        </key>
-        <!-- NOISE LIGHTNESS -->
-        <key type="d" name="noise-lightness">
-            <default>0.</default>
-            <summary>Lightness of the noise added to the blur effect</summary>
-        </key>
-    </schema>
 
     <!-- LOCKSCREEN -->
     <schema id="org.gnome.shell.extensions.blur-my-shell.lockscreen"
@@ -693,11 +480,6 @@
             <default>true</default>
             <summary>Boolean, whether to blur activate the blur for this component or not</summary>
         </key>
-        <!-- PIPELINE -->
-        <key type="s" name="pipeline">
-            <default>"pipeline_default"</default>
-            <summary>String, the name of the pipeline to use. It must exist, else "pipeline_default" will be used</summary>
-        </key>
         <!-- CUSTOMIZE -->
         <key type="b" name="customize">
             <default>false</default>
@@ -735,70 +517,7 @@
         </key>
     </schema>
 
-    <!-- WINDOW LIST -->
-    <schema id="org.gnome.shell.extensions.blur-my-shell.window-list"
-        path="/org/gnome/shell/extensions/blur-my-shell/window-list/">
-        <!-- BLUR -->
-        <key type="b" name="blur">
-            <default>true</default>
-            <summary>Boolean, whether to blur activate the blur for this component or not</summary>
-        </key>
-        <!-- PIPELINE -->
-        <key type="s" name="pipeline">
-            <default>"pipeline_default"</default>
-            <summary>String, the name of the pipeline to use. It must exist, else "pipeline_default" will be used</summary>
-        </key>
-        <!-- CUSTOMIZE -->
-        <key type="b" name="customize">
-            <default>false</default>
-            <summary>Boolean, whether to customize the blur effect sigma/brightness or use general values</summary>
-        </key>
-        <!-- SIGMA -->
-        <key type="i" name="sigma">
-            <default>30</default>
-            <summary>Gaussian sigma to use for the blur effect</summary>
-        </key>
-        <!-- BRIGHTNESS -->
-        <key type="d" name="brightness">
-            <default>0.6</default>
-            <summary>Brightness to use for the blur effect</summary>
-        </key>
-        <!-- VIBRANCY -->
-        <key type="d" name="vibrancy">
-            <default>0.</default>
-            <summary>Vibrancy to use for the blur effect</summary>
-        </key>
-        <!-- COLOR -->
-        <key type="(dddd)" name="color">
-            <default>(0.,0.,0.,0.)</default>
-            <summary>Color to mix with the blur effect</summary>
-        </key>
-        <!-- NOISE AMOUNT -->
-        <key type="d" name="noise-amount">
-            <default>0.</default>
-            <summary>Amount of noise to add to the blur effect</summary>
-        </key>
-        <!-- NOISE LIGHTNESS -->
-        <key type="d" name="noise-lightness">
-            <default>0.</default>
-            <summary>Lightness of the noise added to the blur effect</summary>
-        </key>
-    </schema>
 
-    <!-- COVERFLOW ALT-TAB -->
-    <schema id="org.gnome.shell.extensions.blur-my-shell.coverflow-alt-tab"
-        path="/org/gnome/shell/extensions/blur-my-shell/coverflow-alt-tab/">
-        <!-- BLUR -->
-        <key type="b" name="blur">
-            <default>true</default>
-            <summary>Boolean, whether to blur activate the blur for this component or not</summary>
-        </key>
-        <!-- PIPELINE -->
-        <key type="s" name="pipeline">
-            <default>"pipeline_default"</default>
-            <summary>String, the name of the pipeline to use. It must exist, else "pipeline_default" will be used</summary>
-        </key>
-    </schema>
 
     <!-- HIDETOPBAR -->
     <schema id="org.gnome.shell.extensions.blur-my-shell.hidetopbar"

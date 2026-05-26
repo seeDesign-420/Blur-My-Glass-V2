@@ -7,7 +7,6 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import { update_from_old_settings } from './conveniences/settings_updater.js';
 import { import_in_shell_only} from './conveniences/utils.js';
-import { PipelinesManager } from './conveniences/pipelines_manager.js';
 import { EffectsManager } from './conveniences/effects_manager.js';
 import { Connections } from './conveniences/connections.js';
 import { Settings } from './conveniences/settings.js';
@@ -23,10 +22,7 @@ import { OverlaysBlur } from './components/overlays.js';
 import { DhruvaBlur } from './components/dhruva.js';
 import { LockscreenBlur } from './components/lockscreen.js';
 import { AppFoldersBlur } from './components/appfolders.js';
-import { WindowListBlur } from './components/window_list.js';
-import { CoverflowAltTabBlur } from './components/coverflow_alt_tab.js';
 import { ApplicationsBlur } from './components/applications.js';
-import { ScreenshotBlur } from './components/screenshot.js';
 
 const BlurModule = await import_in_shell_only('gi://Blur');
 
@@ -57,8 +53,6 @@ export default class BlurMyShell extends Extension {
         // create a global effects manager (to prevent RAM bleeding)
         this._effects_manager = new EffectsManager(this._connection);
 
-        // create a global pipelines manager, that helps talking with preferences
-        this._pipelines_manager = new PipelinesManager(this._settings);
         this._settings_router = new SettingsRouter();
         this._capability_service = new CapabilityService(BlurModule);
 
@@ -111,28 +105,10 @@ export default class BlurMyShell extends Extension {
             factory: () => new AppFoldersBlur(...init()),
         });
         this._component_registry.register({
-            key: 'window-list',
-            sessionScope: 'user',
-            shouldEnable: settings => settings.window_list.BLUR,
-            factory: () => new WindowListBlur(...init()),
-        });
-        this._component_registry.register({
-            key: 'coverflow-alt-tab',
-            sessionScope: 'user',
-            shouldEnable: settings => settings.coverflow_alt_tab.BLUR,
-            factory: () => new CoverflowAltTabBlur(...init()),
-        });
-        this._component_registry.register({
             key: 'applications',
             sessionScope: 'user',
             shouldEnable: settings => settings.applications.BLUR,
             factory: () => new ApplicationsBlur(...init()),
-        });
-        this._component_registry.register({
-            key: 'screenshot',
-            sessionScope: 'user',
-            shouldEnable: settings => settings.screenshot.BLUR,
-            factory: () => new ScreenshotBlur(...init()),
         });
         this._component_registry.initAll(this);
 
@@ -143,10 +119,7 @@ export default class BlurMyShell extends Extension {
         this._overlays_blur = this._component_registry.get('overlays');
         this._lockscreen_blur = this._component_registry.get('lockscreen');
         this._appfolder_blur = this._component_registry.get('appfolder');
-        this._window_list_blur = this._component_registry.get('window-list');
-        this._coverflow_alt_tab_blur = this._component_registry.get('coverflow-alt-tab');
         this._applications_blur = this._component_registry.get('applications');
-        this._screenshot_blur = this._component_registry.get('screenshot');
 
         // connect each component to preferences change
         this._connect_to_settings();
@@ -257,10 +230,7 @@ export default class BlurMyShell extends Extension {
         this._overlays_blur = null;
         this._appfolder_blur = null;
         this._lockscreen_blur = null;
-        this._window_list_blur = null;
-        this._coverflow_alt_tab_blur = null;
         this._applications_blur = null;
-        this._screenshot_blur = null;
 
         // make sure no settings change can re-enable them
         this._settings.disconnect_all_settings();

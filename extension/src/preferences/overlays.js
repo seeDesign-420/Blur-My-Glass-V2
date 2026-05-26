@@ -9,9 +9,6 @@ export const Overlays = GObject.registerClass({
     Template: GLib.uri_resolve_relative(import.meta.url, '../ui/overlays.ui', GLib.UriFlags.NONE),
     InternalChildren: [
         'blur',
-        'pipeline_choose_row',
-        'mode_static',
-        'mode_dynamic',
         'sigma_row',
         'sigma',
         'brightness_row',
@@ -35,29 +32,14 @@ export const Overlays = GObject.registerClass({
         'app_menus',
     ],
 }, class Overlays extends Adw.PreferencesPage {
-    constructor(preferences, pipelines_manager, pipelines_page) {
+    constructor(preferences) {
         super({});
 
         this.preferences = preferences;
-        this.pipelines_manager = pipelines_manager;
-        this.pipelines_page = pipelines_page;
 
         this.preferences.overlays.settings.bind(
             'blur', this._blur, 'active',
             Gio.SettingsBindFlags.DEFAULT
-        );
-
-        this._pipeline_choose_row.initialize(
-            this.preferences.overlays, this.pipelines_manager, this.pipelines_page
-        );
-
-        this.change_blur_mode(this.preferences.overlays.STATIC_BLUR, true);
-
-        this._mode_static.connect('toggled',
-            () => this.preferences.overlays.STATIC_BLUR = this._mode_static.active
-        );
-        this.preferences.overlays.STATIC_BLUR_changed(
-            () => this.change_blur_mode(this.preferences.overlays.STATIC_BLUR, false)
         );
 
         this.preferences.overlays.settings.bind(
@@ -113,21 +95,9 @@ export const Overlays = GObject.registerClass({
             'app-menus', this._app_menus, 'active',
             Gio.SettingsBindFlags.DEFAULT
         );
-    }
-
-    change_blur_mode(is_static_blur, first_run) {
-        this._mode_static.set_active(is_static_blur);
-        if (first_run)
-            this._mode_dynamic.set_active(!is_static_blur);
-
-        this._pipeline_choose_row.set_visible(is_static_blur);
-        this._sigma_row.set_visible(!is_static_blur);
-        this._brightness_row.set_visible(!is_static_blur);
-        this._vibrancy_row.set_visible(!is_static_blur);
-        this._corner_radius_row.set_visible(!is_static_blur && this.preferences.ROUNDED_BLUR_FOUND);
-        this._corner_radius_not_found_row.set_visible(!is_static_blur && !this.preferences.ROUNDED_BLUR_FOUND);
-        this._refraction_strength_row.set_visible(!is_static_blur);
-        this._refraction_radius_row.set_visible(!is_static_blur && this.preferences.ROUNDED_BLUR_FOUND);
-        this._refraction_inner_radius_row.set_visible(!is_static_blur && this.preferences.ROUNDED_BLUR_FOUND);
+        this._corner_radius_row.set_visible(this.preferences.ROUNDED_BLUR_FOUND);
+        this._corner_radius_not_found_row.set_visible(!this.preferences.ROUNDED_BLUR_FOUND);
+        this._refraction_radius_row.set_visible(this.preferences.ROUNDED_BLUR_FOUND);
+        this._refraction_inner_radius_row.set_visible(this.preferences.ROUNDED_BLUR_FOUND);
     }
 });

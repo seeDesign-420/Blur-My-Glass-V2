@@ -12,6 +12,24 @@ It focuses on:
 - geometry synchronization
 - compatibility boundaries
 
+Supported runtime surfaces:
+
+- panel
+- overlays (date menu, quick settings, notifications, OSD, desktop/app menus)
+- Dhruva dock and Dhruva context menus
+- applications
+- overview + overview workspace animation
+- appfolders
+- lockscreen
+
+Removed runtime/features:
+
+- static/custom pipeline runtime and pipeline manager/editor UI
+- screenshot blur integration
+- window-list integration
+- coverflow alt-tab integration
+- legacy dash-to-dock blur runtime
+
 ## Rust Decision
 
 The GNOME Shell runtime backend remains in GJS.
@@ -54,8 +72,6 @@ Rust may be used later for tooling and diagnostics, but not as a runtime depende
   - background actor/group ownership
 - `extension/src/blur/blur_effect_binding.js`
   - settings-to-effect property synchronization
-- `extension/src/conveniences/dummy_pipeline.js`
-  - compatibility export (`DummyPipeline` alias of `DynamicBlurPipeline`)
 
 ### Overlays subsystem
 

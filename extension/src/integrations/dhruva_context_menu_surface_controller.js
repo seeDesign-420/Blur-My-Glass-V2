@@ -1,7 +1,7 @@
 import GLib from 'gi://GLib';
 import Clutter from 'gi://Clutter';
 
-import { DynamicBlurPipeline } from '../conveniences/dummy_pipeline.js';
+import { DynamicBlurPipeline } from '../blur/dynamic_blur_pipeline.js';
 import { DisposableStore } from '../runtime/disposable_store.js';
 import { BlurGeometryTracker } from '../runtime/blur_geometry_tracker.js';
 

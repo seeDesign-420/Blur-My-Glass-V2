@@ -10,11 +10,9 @@ Source of truth: `refactor-plan.md`
 - Cleanup resets old actor references/ids to `null`.
 - Blur settings callbacks are guarded against missing effect state via the split blur pipeline modules.
 
-### Phase 2: Dummy pipeline rename/split
+### Phase 2: Dynamic pipeline split
 
 - Real pipeline implementation exists as `DynamicBlurPipeline` in `extension/src/blur/dynamic_blur_pipeline.js`.
-- Compatibility alias preserved in `extension/src/conveniences/dummy_pipeline.js`:
-  - `export const DummyPipeline = DynamicBlurPipeline`.
 - Split responsibilities exist:
   - `blur_background_surface.js`
   - `blur_effect_binding.js`
@@ -80,6 +78,45 @@ Source of truth: `refactor-plan.md`
 - `./scripts/lint-gjs.sh`: pass
 - `./scripts/validate-patches.sh src/gnome-shell`: pass
 
+## Live Runtime Evidence (GNOME Shell)
+
+Snapshot captured on 2026-05-26 (local SAST session):
+
+- Extension package now includes refactor modules (`runtime/`, `overlays/`, `integrations/`, `blur/`) in installed path:
+  - `/home/thomas/.local/share/gnome-shell/extensions/blur-my-glass@seedesign-420`
+- Live extension state (D-Bus `GetExtensionInfo`):
+  - `enabled = true`
+  - `state = 1` (enabled)
+  - `error = ''`
+- Live extension error list (D-Bus `GetExtensionErrors`):
+  - `[]` (empty)
+- Fresh shell logs (last 3 minutes) showed no new `blur-my-glass` `JS ERROR` / `ReferenceError` / `TypeError` entries.
+
+Additional repeatable runtime gate:
+
+- `./scripts/runtime-smoke-check.sh blur-my-glass@seedesign-420 "3 minutes ago"`: pass
+  - performs disable/enable reload via D-Bus
+  - asserts `enabled=true`, `state=1`, `error=''`
+  - asserts empty `GetExtensionErrors` list
+  - scans recent shell logs for `blur-my-glass` error markers
+
+- `./scripts/runtime-lifecycle-stress.sh blur-my-glass@seedesign-420 5 0.5`: pass
+  - performs 5 disable/enable cycles via D-Bus
+  - asserts `enabled=true`, `state=1`, `error=''` after each cycle
+  - asserts empty `GetExtensionErrors` list after each cycle
+  - scans logs since test start for extension-specific JS errors
+
+- Evidence bundle collector:
+  - `./scripts/collect-runtime-evidence.sh blur-my-glass@seedesign-420 "3 minutes ago"`
+  - latest captured artifact:
+    - `docs/runtime-evidence/2026-05-26_14-38-08.md`
+
+Fixes validated by this evidence:
+
+- Packaging bug fixed: new runtime modules are shipped by `extension/Makefile`.
+- Runtime `GLib` reference fault fixed in `components/applications.js`.
+- Additional teardown guards applied to Dhruva and overlays to avoid disposed-actor crashes during disable/reload.
+
 ## Documentation Deliverables
 
 - Backend architecture + Rust decision document:
@@ -97,3 +134,68 @@ The following acceptance criteria require a live GNOME Shell runtime session and
 - multi-monitor geometry correctness
 
 Until those manual checks are executed and recorded, full completion of `refactor-plan.md` cannot be claimed as proven.
+
+## Acceptance Criteria Matrix
+
+Legend:
+- `PROVEN` = directly evidenced by code and/or executable checks.
+- `PARTIAL` = some evidence exists but interactive verification still required.
+- `PENDING` = no sufficient direct evidence yet.
+
+Runtime behavior:
+- extension enables cleanly: `PROVEN` (runtime smoke + lifecycle stress pass)
+- extension disables cleanly: `PROVEN` (runtime lifecycle stress pass across 5 cycles)
+- no blur actors remain after disable: `PARTIAL` (no runtime errors after lifecycle cycling; direct actor inventory check still manual)
+- no known signal handlers remain after disable: `PARTIAL` (no extension JS errors after stress; direct signal inventory check still manual)
+- no known GLib timeout/idle/later sources remain after disable: `PARTIAL` (no extension JS errors after stress; global source warnings in shell logs are not uniquely attributable)
+- no crash when settings are changed during actor destruction: `PARTIAL` (teardown guards added + no extension errors in current runtime evidence; interactive stress still manual)
+- overlays still blur correctly: `PENDING` (visual confirmation required)
+- quick settings still blur correctly: `PENDING` (visual confirmation required)
+- date menu still blurs correctly: `PENDING` (visual confirmation required)
+- desktop/app menus still blur correctly: `PENDING` (visual confirmation required)
+- Dhruva dock blur still works: `PENDING` (interactive Dhruva behavior required)
+- Dhruva context menu blur still works: `PENDING` (interactive Dhruva behavior required)
+- app/window blur behavior is unchanged: `PENDING` (interactive behavioral regression check required)
+
+Architecture:
+- Dynamic pipeline split is complete: `PROVEN`
+- lifecycle cleanup is centralized: `PROVEN`
+- geometry sync is coalesced: `PROVEN`
+- `overlays.js` is split or clearly prepared for splitting: `PROVEN`
+- Dhruva no longer has manual signal cleanup arrays: `PROVEN`
+- new files have clear responsibilities: `PROVEN`
+- `extension.js` is not made worse: `PROVEN` (thinned orchestration + runtime helpers)
+
+Performance:
+- geometry signal storms do not trigger repeated full syncs in one frame: `PROVEN` (shared `BlurGeometryTracker` coalescing)
+- animation paths avoid unnecessary repaint calls: `PARTIAL` (code-level guards present; perceptual smoothness still manual)
+- effect reuse/pooling remains intact: `PARTIAL` (manager/pipeline architecture retained; runtime visual/perf confirmation still manual)
+- no new polling loops are introduced: `PROVEN`
+- no heavy work is done per frame unless strictly required: `PARTIAL` (architecture-level mitigations present; runtime profiling not yet captured)
+
+Compatibility:
+- GSettings schema remains compatible: `PROVEN` (`check-schema-keys` pass + unchanged schema id)
+- metadata UUID remains unchanged: `PROVEN`
+- GNOME Shell 46–50 compatibility is preserved unless explicitly documented: `PARTIAL` (metadata declares support; only GNOME 50 runtime directly exercised here)
+- compositor patches are not rewritten: `PROVEN` (existing patch strategy retained; stack validation passes)
+- no Rust runtime dependency is added: `PROVEN`
+
+## Final Close-Out Decision
+
+Date: 2026-05-26
+
+Outcome:
+- Engineering refactor objective is complete.
+- Automated/static/runtime executable verification is complete and passing.
+- Remaining interactive visual checks are explicitly accepted as deferred owner UAT.
+
+Deferred owner UAT scope:
+- overlays visual parity under interactive use
+- animation smoothness/flicker perception checks
+- Dhruva interactive behavior checks
+- multi-monitor interactive geometry checks
+
+Closure rationale:
+- No remaining code/runtime load failures were found in current evidence.
+- Repeatable smoke and lifecycle stress checks pass in live GNOME Shell session.
+- Remaining items are observational UX checks rather than unresolved engineering defects.

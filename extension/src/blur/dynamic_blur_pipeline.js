@@ -72,8 +72,6 @@ export class DynamicBlurPipeline {
         this.effect = null;
     }
 
-    change_pipeline_to() { return; }
-
     destroy() {
         this.remove_effect();
         this.remove_pipeline_from_actor();

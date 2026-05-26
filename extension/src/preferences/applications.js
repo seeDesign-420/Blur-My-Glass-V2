@@ -30,9 +30,6 @@ export const Applications = GObject.registerClass({
     Template: GLib.uri_resolve_relative(import.meta.url, '../ui/applications.ui', GLib.UriFlags.NONE),
     InternalChildren: [
         'blur',
-        'pipeline_choose_row',
-        'mode_static',
-        'mode_dynamic',
         'sigma_row',
         'sigma',
         'brightness_row',
@@ -60,30 +57,15 @@ export const Applications = GObject.registerClass({
         'add_window_blacklist'
     ],
 }, class Applications extends Adw.PreferencesPage {
-    constructor(preferences, preferences_window, pipelines_manager, pipelines_page) {
+    constructor(preferences, preferences_window) {
         super({});
         this._preferences_window = preferences_window;
 
         this.preferences = preferences;
-        this.pipelines_manager = pipelines_manager;
-        this.pipelines_page = pipelines_page;
 
         this.preferences.applications.settings.bind(
             'blur', this._blur, 'active',
             Gio.SettingsBindFlags.DEFAULT
-        );
-
-        this._pipeline_choose_row.initialize(
-            this.preferences.applications, this.pipelines_manager, this.pipelines_page
-        );
-
-        this.change_blur_mode(this.preferences.applications.STATIC_BLUR, true);
-
-        this._mode_static.connect('toggled',
-            () => this.preferences.applications.STATIC_BLUR = this._mode_static.active
-        );
-        this.preferences.applications.STATIC_BLUR_changed(
-            () => this.change_blur_mode(this.preferences.applications.STATIC_BLUR, false)
         );
 
         this.preferences.applications.settings.bind(
@@ -165,6 +147,11 @@ export const Applications = GObject.registerClass({
             this.remove_all_widgets();
             this.add_widgets_from_lists();
         });
+        this._refraction_radius_row.set_visible(this.preferences.ROUNDED_BLUR_FOUND);
+        this._refraction_inner_radius_row.set_visible(this.preferences.ROUNDED_BLUR_FOUND);
+        this._corner_radius_row.set_visible(this.preferences.ROUNDED_BLUR_FOUND);
+        this._corner_when_maximized_row.set_visible(this.preferences.ROUNDED_BLUR_FOUND);
+        this._corner_radius_not_found_row.set_visible(!this.preferences.ROUNDED_BLUR_FOUND);
     }
 
     // A way to retriew the whitelist widgets.
@@ -242,20 +229,4 @@ export const Applications = GObject.registerClass({
         this.update_blacklist_titles();
     }
 
-    change_blur_mode(is_static_blur, first_run) {
-        this._mode_static.set_active(is_static_blur);
-        if (first_run)
-            this._mode_dynamic.set_active(!is_static_blur);
-
-        this._pipeline_choose_row.set_visible(is_static_blur);
-        this._sigma_row.set_visible(!is_static_blur);
-        this._brightness_row.set_visible(!is_static_blur);
-        this._vibrancy_row.set_visible(!is_static_blur);
-        this._refraction_strength_row.set_visible(!is_static_blur);
-        this._refraction_radius_row.set_visible(!is_static_blur && this.preferences.ROUNDED_BLUR_FOUND);
-        this._refraction_inner_radius_row.set_visible(!is_static_blur && this.preferences.ROUNDED_BLUR_FOUND);
-        this._corner_radius_row.set_visible(!is_static_blur && this.preferences.ROUNDED_BLUR_FOUND);
-        this._corner_when_maximized_row.set_visible(!is_static_blur && this.preferences.ROUNDED_BLUR_FOUND);
-        this._corner_radius_not_found_row.set_visible(!is_static_blur && !this.preferences.ROUNDED_BLUR_FOUND);
-    }
 });

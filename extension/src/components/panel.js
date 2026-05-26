@@ -5,8 +5,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { PaintSignals } from '../conveniences/paint_signals.js';
 
-import { Pipeline } from '../conveniences/pipeline.js';
-import { DynamicBlurPipeline } from '../conveniences/dummy_pipeline.js';
+import { DynamicBlurPipeline } from '../blur/dynamic_blur_pipeline.js';
 
 const DASH_TO_PANEL_UUID = 'dash-to-panel@jderose9.github.com';
 const PANEL_STYLES = [
@@ -195,48 +194,30 @@ export const PanelBlur = class PanelBlur {
         );
 
         let background, bg_manager;
-        let static_blur = this.settings.panel.STATIC_BLUR;
-        if (static_blur) {
-            let bg_manager_list = [];
-            const pipeline = new Pipeline(
-                this.effects_manager,
-                global.blur_my_shell._pipelines_manager,
-                this.settings.panel.PIPELINE
-            );
-            background = pipeline.create_background_with_effects(
-                monitor.index, bg_manager_list,
-                background_group, 'bms-panel-blurred-widget'
-            );
-            bg_manager = bg_manager_list[0];
-        }
-        else {
-            const pipeline = new DynamicBlurPipeline(this.effects_manager, this.settings.panel);
-            [background, bg_manager] = pipeline.create_background_with_effect(
-                background_group, 'bms-panel-blurred-widget'
-            );
+        const pipeline = new DynamicBlurPipeline(this.effects_manager, this.settings.panel);
+        [background, bg_manager] = pipeline.create_background_with_effect(
+            background_group, 'bms-panel-blurred-widget'
+        );
 
-            let paint_signals = new PaintSignals(this.connections);
+        let paint_signals = new PaintSignals(this.connections);
 
-            // HACK
-            //
-            //`Shell.BlurEffect` does not repaint when shadows are under it. [1]
-            //
-            // This does not entirely fix this bug (shadows caused by windows
-            // still cause artifacts), but it prevents the shadows of the panel
-            // buttons to cause artifacts on the panel itself
-            //
-            // [1]: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/2857
+        // HACK
+        //
+        //`Shell.BlurEffect` does not repaint when shadows are under it. [1]
+        //
+        // This does not entirely fix this bug (shadows caused by windows
+        // still cause artifacts), but it prevents the shadows of the panel
+        // buttons to cause artifacts on the panel itself
+        //
+        // [1]: https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/2857
 
-            {
-                if (this.settings.HACKS_LEVEL === 1) {
-                    this._log("panel hack level 1");
+        if (this.settings.HACKS_LEVEL === 1) {
+            this._log("panel hack level 1");
 
-                    paint_signals.disconnect_all();
-                    paint_signals.connect(background, pipeline.effect);
-                } else {
-                    paint_signals.disconnect_all();
-                }
-            }
+            paint_signals.disconnect_all();
+            paint_signals.connect(background, pipeline.effect);
+        } else {
+            paint_signals.disconnect_all();
         }
 
         // insert the background group to the panel box
@@ -245,7 +226,6 @@ export const PanelBlur = class PanelBlur {
         // the object that is used to remembering each elements that is linked to the blur effect
         let actors = {
             widgets: { panel, panel_box, background, background_group },
-            static_blur,
             monitor,
             bg_manager,
             is_dtp_panel
@@ -283,33 +263,12 @@ export const PanelBlur = class PanelBlur {
 
     update_size(actors) {
         let panel = actors.widgets.panel;
-        let panel_box = actors.widgets.panel_box;
         let background = actors.widgets.background;
-        let [width, height] = panel_box.get_size();
 
-        // if static blur, need to clip the background
-        if (actors.static_blur) {
-            let monitor = Main.layoutManager.findMonitorForActor(panel);
-            if (!monitor)
-                return;
-
-            // an alternative to panel.get_transformed_position, because it
-            // sometimes yields NaN (probably when the actor is not fully
-            // positionned yet)
-            let [p_x, p_y] = panel_box.get_position();
-            let [p_p_x, p_p_y] = panel_box.get_parent().get_position();
-            let x = p_x + p_p_x - monitor.x + (width - panel.width) / 2;
-            let y = p_y + p_p_y - monitor.y + (height - panel.height) / 2;
-
-            background.set_clip(x, y, panel.width, panel.height);
-            background.x = (width - panel.width) / 2 - x;
-            background.y = .5 + (height - panel.height) / 2 - y;
-        } else {
-            background.x = panel.x;
-            background.y = panel.y;
-            background.width = panel.width;
-            background.height = panel.height;
-        }
+        background.x = panel.x;
+        background.y = panel.y;
+        background.width = panel.width;
+        background.height = panel.height;
 
         // update the monitor panel is on
         actors.monitor = Main.layoutManager.findMonitorForActor(panel);
@@ -543,14 +502,6 @@ export const PanelBlur = class PanelBlur {
 
         // update the classname if the panel to have or have not light text
         this.update_light_text_classname(!should_override);
-    }
-
-    update_pipeline() {
-        this.actors_list.forEach(actors =>
-            actors.bg_manager._bms_pipeline.change_pipeline_to(
-                this.settings.panel.PIPELINE
-            )
-        );
     }
 
     show() {

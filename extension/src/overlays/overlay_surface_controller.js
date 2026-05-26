@@ -1,8 +1,7 @@
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 
-import { Pipeline } from '../conveniences/pipeline.js';
-import { DynamicBlurPipeline } from '../conveniences/dummy_pipeline.js';
+import { DynamicBlurPipeline } from '../blur/dynamic_blur_pipeline.js';
 import { DisposableStore } from '../runtime/disposable_store.js';
 import { BlurGeometryTracker } from '../runtime/blur_geometry_tracker.js';
 import {
@@ -228,33 +227,16 @@ export class OverlaySurfaceController {
             height: 0,
         });
 
-        if (this.runtime.settings.overlays.STATIC_BLUR) {
-            const background_managers = [];
-            const pipeline = new Pipeline(
-                this.runtime.effects_manager,
-                global.blur_my_shell._pipelines_manager,
-                this.runtime.settings.overlays.PIPELINE
-            );
-            this.background_actor = pipeline.create_background_with_effects(
-                monitor.index,
-                background_managers,
-                this.background_group,
-                `bms-overlay-${this.id}-blurred-widget`,
-                false
-            );
-            this.bg_manager = background_managers[0] ?? null;
-        } else {
-            const pipeline = new DynamicBlurPipeline(
-                this.runtime.effects_manager,
-                this.runtime.settings.overlays,
-                null,
-                getOverlayTuning(this.target)
-            );
-            [this.background_actor, this.bg_manager] = pipeline.create_background_with_effect(
-                this.background_group,
-                `bms-overlay-${this.id}-blurred-widget`
-            );
-        }
+        const pipeline = new DynamicBlurPipeline(
+            this.runtime.effects_manager,
+            this.runtime.settings.overlays,
+            null,
+            getOverlayTuning(this.target)
+        );
+        [this.background_actor, this.bg_manager] = pipeline.create_background_with_effect(
+            this.background_group,
+            `bms-overlay-${this.id}-blurred-widget`
+        );
     }
 
     _destroyBackground() {
@@ -297,10 +279,6 @@ export class OverlaySurfaceController {
         if (!parent)
             return;
 
-        const monitor = this.runtime.findMonitorForActor(this.surfaceActor);
-        if (!monitor)
-            return;
-
         const [stageX, stageY] = getTransformPosition(this.surfaceActor);
         let [stageWidth, stageHeight] = getTransformSize(this.surfaceActor);
         if (stageWidth <= 0 || stageHeight <= 0) {
@@ -315,44 +293,15 @@ export class OverlaySurfaceController {
         const localHeight = Math.max(1, Math.round(targetRect.height));
 
         try {
-            if (this.runtime.settings.overlays.STATIC_BLUR) {
-                const monitorRect = stageRectToActorSpace(
-                    parent,
-                    monitor.x,
-                    monitor.y,
-                    monitor.width,
-                    monitor.height
-                );
-                const monitorX = Math.round(monitorRect.x);
-                const monitorY = Math.round(monitorRect.y);
-                const monitorWidth = Math.max(1, Math.round(monitorRect.width));
-                const monitorHeight = Math.max(1, Math.round(monitorRect.height));
-
-                this.background_group.x = monitorX;
-                this.background_group.y = monitorY;
-                this.background_group.width = monitorWidth;
-                this.background_group.height = monitorHeight;
-                this.background_actor.x = 0;
-                this.background_actor.y = 0;
-                this.background_actor.width = monitorWidth;
-                this.background_actor.height = monitorHeight;
-                this.background_actor.set_clip(
-                    localX - monitorX,
-                    localY - monitorY,
-                    localWidth,
-                    localHeight
-                );
-            } else {
-                this.background_group.x = localX;
-                this.background_group.y = localY;
-                this.background_group.width = localWidth;
-                this.background_group.height = localHeight;
-                this.background_actor.x = 0;
-                this.background_actor.y = 0;
-                this.background_actor.width = localWidth;
-                this.background_actor.height = localHeight;
-                this.background_actor.set_clip(0, 0, localWidth, localHeight);
-            }
+            this.background_group.x = localX;
+            this.background_group.y = localY;
+            this.background_group.width = localWidth;
+            this.background_group.height = localHeight;
+            this.background_actor.x = 0;
+            this.background_actor.y = 0;
+            this.background_actor.width = localWidth;
+            this.background_actor.height = localHeight;
+            this.background_actor.set_clip(0, 0, localWidth, localHeight);
 
             this.bg_manager?._bms_pipeline?.repaint_effect?.();
         } catch (e) {

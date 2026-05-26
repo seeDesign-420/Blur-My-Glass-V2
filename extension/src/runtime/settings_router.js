@@ -8,9 +8,6 @@ export class SettingsRouter {
             if (s.overview.BLUR) host._overview_blur.enable();
             else host._overview_blur.disable();
         });
-        s.overview.PIPELINE_changed(() => {
-            if (s.overview.BLUR) host._overview_blur.update_backgrounds();
-        });
         s.overview.STYLE_COMPONENTS_changed(() => {
             if (s.overview.BLUR) host._overview_blur.update_components_classname();
         });
@@ -18,9 +15,6 @@ export class SettingsRouter {
         s.overlays.BLUR_changed(() => {
             if (s.overlays.BLUR) host._overlays_blur.enable();
             else host._overlays_blur.disable();
-        });
-        s.overlays.STATIC_BLUR_changed(() => {
-            if (s.overlays.BLUR) host._overlays_blur.syncTargets(true);
         });
         s.overlays.DATE_MENU_changed(() => {
             if (s.overlays.BLUR) host._overlays_blur.syncTargets();
@@ -66,12 +60,6 @@ export class SettingsRouter {
             if (s.dhruva.BLUR) host._dhruva_blur.enable();
             else host._dhruva_blur.disable();
         });
-        s.panel.STATIC_BLUR_changed(() => {
-            if (s.panel.BLUR) host._panel_blur.reset();
-        });
-        s.panel.PIPELINE_changed(() => {
-            if (s.panel.BLUR) host._panel_blur.update_pipeline();
-        });
         s.panel.UNBLUR_IN_OVERVIEW_changed(() => host._panel_blur.connect_to_windows_and_overview());
         s.panel.FORCE_LIGHT_TEXT_changed(() => {
             if (s.panel.BLUR) host._panel_blur.update_light_text_classname();
@@ -89,12 +77,6 @@ export class SettingsRouter {
         s.applications.BLUR_changed(() => {
             if (s.applications.BLUR) host._applications_blur.enable();
             else host._applications_blur.disable();
-        });
-        s.applications.STATIC_BLUR_changed(() => {
-            if (s.applications.BLUR) host._applications_blur.change_blur_type();
-        });
-        s.applications.PIPELINE_changed(() => {
-            if (s.applications.BLUR) host._applications_blur.change_pipeline();
         });
         s.applications.CORNER_WHEN_MAXIMIZED_changed(() => {
             if (s.applications.BLUR) host._applications_blur.update_all_corner_radii();
@@ -124,33 +106,12 @@ export class SettingsRouter {
             if (s.lockscreen.BLUR) host._lockscreen_blur.enable();
             else host._lockscreen_blur.disable();
         });
-        s.lockscreen.PIPELINE_changed(() => {
-            if (s.lockscreen.BLUR) host._lockscreen_blur.update_lockscreen();
-        });
-
-        s.window_list.BLUR_changed(() => {
-            if (s.window_list.BLUR) host._window_list_blur.enable();
-            else host._window_list_blur.disable();
-        });
-
-        s.coverflow_alt_tab.BLUR_changed(() => {
-            if (s.coverflow_alt_tab.BLUR) host._coverflow_alt_tab_blur.enable();
-            else host._coverflow_alt_tab_blur.disable();
-        });
 
         s.hidetopbar.COMPATIBILITY_changed(() => {
             host._panel_blur.connect_to_windows_and_overview();
         });
         s.dash_to_panel.BLUR_ORIGINAL_PANEL_changed(() => {
             if (s.panel.BLUR) host._panel_blur.reset();
-        });
-
-        s.screenshot.BLUR_changed(() => {
-            if (s.screenshot.BLUR) host._screenshot_blur.enable();
-            else host._screenshot_blur.disable();
-        });
-        s.screenshot.PIPELINE_changed(() => {
-            if (s.screenshot.BLUR) host._screenshot_blur.update_pipeline();
         });
     }
 }

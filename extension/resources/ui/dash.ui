@@ -16,57 +16,6 @@
         </property>
 
         <child>
-          <object class="AdwActionRow" id="blur_mode_row">
-            <property name="title" translatable="yes">Blur type</property>
-            <property name="subtitle" translatable="yes">The dynamic blur is slower and only compatible with a gaussian blur effect.</property>
-            <property name="activatable-widget">blur_mode_choose</property>
-            <property name="sensitive" bind-source="blur" bind-property="state" bind-flags="sync-create" />
-
-            <child>
-              <object class="GtkBox" id="blur_mode_choose">
-                <property name="valign">center</property>
-                <property name="hexpand">false</property>
-                <style>
-                  <class name="linked" />
-                </style>
-
-                <child>
-                  <object class="GtkToggleButton" id="mode_static">
-                    <property name="valign">center</property>
-                    <property name="hexpand">true</property>
-                    <property name="group">mode_dynamic</property>
-                    <property name="child">
-                      <object class="AdwButtonContent">
-                        <property name="icon-name">static-mode-symbolic</property>
-                        <property name="label" translatable="yes">Static</property>
-                      </object>
-                    </property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkToggleButton" id="mode_dynamic">
-                    <property name="valign">center</property>
-                    <property name="hexpand">true</property>
-                    <property name="child">
-                      <object class="AdwButtonContent">
-                        <property name="icon-name">dynamic-mode-symbolic</property>
-                        <property name="label" translatable="yes">Dynamic</property>
-                      </object>
-                    </property>
-                  </object>
-                </child>
-              </object>
-            </child>
-          </object>
-        </child>
-
-        <child>
-          <object class="BmsGlassPipelineChooseRow" id="pipeline_choose_row">
-            <property name="sensitive" bind-source="blur" bind-property="state" bind-flags="sync-create" />
-          </object>
-        </child>
-
-        <child>
           <object class="AdwActionRow" id="sigma_row">
             <property name="title" translatable="yes">Sigma</property>
             <property name="subtitle" translatable="yes">The intensity of the blur.</property>

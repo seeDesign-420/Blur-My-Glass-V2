@@ -161,18 +161,6 @@ export class OverlaySurfaceRegistry {
         const keep = new Set();
 
         const quickSettingsMenu = Main.panel?.statusArea?.quickSettings?.menu;
-        if (quickSettingsMenu?.actor && this.runtime.isTargetEnabled('quick-settings') &&
-            this.runtime.settings.overlays.STATIC_BLUR) {
-            const id = 'quick-settings';
-            keep.add(id);
-            this._upsertPopupController(id, {
-                target: 'quick-settings',
-                menu: quickSettingsMenu,
-                getSurfaceActor: () => resolvePopupContentActor(quickSettingsMenu.actor),
-                getInsertActor: () => quickSettingsMenu._boxPointer ?? quickSettingsMenu.actor,
-                getOpenStateActor: () => getOpenStateActor(quickSettingsMenu, resolvePopupContentActor(quickSettingsMenu.actor)),
-            }, forceGeometrySync);
-        }
 
         const dateMenu = Main.panel?.statusArea?.dateMenu?.menu;
         if (dateMenu?.actor && this.runtime.isTargetEnabled('date-menu')) {
@@ -213,8 +201,7 @@ export class OverlaySurfaceRegistry {
     _rebuildQuickSettingsControlLayer() {
         const quickSettingsMenu = Main.panel?.statusArea?.quickSettings?.menu;
         const enabled = quickSettingsMenu?.actor &&
-            this.runtime.isTargetEnabled('quick-settings') &&
-            !this.runtime.settings.overlays.STATIC_BLUR;
+            this.runtime.isTargetEnabled('quick-settings');
 
         if (!enabled) {
             this._quickSettingsControlLayer?.destroy();
