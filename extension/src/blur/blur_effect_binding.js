@@ -23,7 +23,7 @@ export class BlurEffectBinding {
             'changed::sigma', () => {
                 if (!this.effect)
                     return;
-                this.effect.unscaled_radius = 2 * this._resolveSigma();
+                this.effect.unscaled_radius = this._resolveUnscaledRadius();
             }
         );
         this._brightness_changed_id = this.settings.settings.connect(
@@ -123,35 +123,47 @@ export class BlurEffectBinding {
         if (!this.effect)
             return;
 
-        const resolved_sigma = this._resolveSigma();
-        const resolved_brightness = this._resolveBrightness();
-        const resolved_vibrancy = this._resolveVibrancy();
-        const resolved_corner_radius = this.settings.CORNER_RADIUS !== undefined ?
-            this._resolveCornerRadius() : 0;
-        const resolved_refraction_strength = this.settings.REFRACTION_STRENGTH !== undefined ?
-            this._resolveRefractionStrength() : 0;
-        const resolved_refraction_radius = this.settings.REFRACTION_RADIUS !== undefined ?
-            this._resolveRefractionRadius() : 24;
-        const resolved_refraction_inner_radius = this.settings.REFRACTION_INNER_RADIUS !== undefined ?
-            this._resolveRefractionInnerRadius() : 24;
+        const resolved = this.getResolvedEffectParams();
 
-        this.effect.unscaled_radius = resolved_sigma;
-        this.effect.brightness = resolved_brightness;
-        this._setVibrancy(resolved_vibrancy);
+        this.effect.unscaled_radius = resolved.unscaled_radius;
+        this.effect.brightness = resolved.brightness;
+        this._setVibrancy(resolved.vibrancy);
         if (this.settings.CORNER_RADIUS !== undefined)
-            this.effect.corner_radius = resolved_corner_radius;
+            this.effect.corner_radius = resolved.corner_radius;
         if (this.settings.REFRACTION_STRENGTH !== undefined
             || this.settings.REFRACTION_RADIUS !== undefined
             || this.settings.REFRACTION_INNER_RADIUS !== undefined) {
             try {
-                this.effect.refraction_strength = resolved_refraction_strength;
-                this.effect.refraction_radius = resolved_refraction_radius;
-                this.effect.refraction_inner_radius = resolved_refraction_inner_radius;
+                this.effect.refraction_strength = resolved.refraction_strength;
+                this.effect.refraction_radius = resolved.refraction_radius;
+                this.effect.refraction_inner_radius = resolved.refraction_inner_radius;
             } catch (e) {
-                if ((resolved_refraction_strength ?? 0) > 0)
+                if ((resolved.refraction_strength ?? 0) > 0)
                     console.warn(`[Blur my Shell > effect]       Shell.BlurEffect does not expose liquid-glass refraction: ${e}`);
             }
         }
+    }
+
+    getResolvedEffectParams() {
+        const params = {
+            unscaled_radius: this._resolveUnscaledRadius(),
+            brightness: this._resolveBrightness(),
+            vibrancy: this._resolveVibrancy(),
+        };
+
+        if (this.settings.CORNER_RADIUS !== undefined)
+            params.corner_radius = this._resolveCornerRadius();
+
+        if (this.settings.REFRACTION_STRENGTH !== undefined)
+            params.refraction_strength = this._resolveRefractionStrength();
+
+        if (this.settings.REFRACTION_RADIUS !== undefined)
+            params.refraction_radius = this._resolveRefractionRadius();
+
+        if (this.settings.REFRACTION_INNER_RADIUS !== undefined)
+            params.refraction_inner_radius = this._resolveRefractionInnerRadius();
+
+        return params;
     }
 
     _resolveOverrideValue(name, fallback) {
@@ -165,6 +177,10 @@ export class BlurEffectBinding {
         const base = this.settings.SIGMA;
         const multiplier = this.effect_overrides.sigma_multiplier ?? 1;
         return Math.max(0, this._resolveOverrideValue('sigma', base * multiplier));
+    }
+
+    _resolveUnscaledRadius() {
+        return 2 * this._resolveSigma();
     }
 
     _resolveBrightness() {

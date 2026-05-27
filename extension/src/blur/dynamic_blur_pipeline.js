@@ -40,16 +40,7 @@ export class DynamicBlurPipeline {
     }
 
     _create_effect() {
-        const params = {
-            unscaled_radius: 2 * this.settings.SIGMA,
-            brightness: this.settings.BRIGHTNESS,
-            vibrancy: this.settings.VIBRANCY ?? 0,
-            refraction_strength: this.effect_overrides.refraction_strength ?? this.settings.REFRACTION_STRENGTH ?? 0,
-            refraction_radius: this.settings.REFRACTION_RADIUS ?? 24,
-            refraction_inner_radius: this.settings.REFRACTION_INNER_RADIUS ?? 24,
-        };
-        if (this.settings.CORNER_RADIUS !== undefined)
-            params.corner_radius = this.settings.CORNER_RADIUS;
+        const params = this._binding.getResolvedEffectParams();
 
         this.remove_effect();
         this.effect = this.effects_manager.new_native_dynamic_gaussian_blur_effect(params);

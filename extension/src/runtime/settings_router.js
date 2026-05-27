@@ -78,6 +78,15 @@ export class SettingsRouter {
             if (s.applications.BLUR) host._applications_blur.enable();
             else host._applications_blur.disable();
         });
+        s.applications.CORNER_RADIUS_changed(() => {
+            if (s.applications.BLUR) host._applications_blur.update_all_corner_radii();
+        });
+        s.applications.REFRACTION_RADIUS_changed(() => {
+            if (s.applications.BLUR) host._applications_blur.update_all_corner_radii();
+        });
+        s.applications.REFRACTION_INNER_RADIUS_changed(() => {
+            if (s.applications.BLUR) host._applications_blur.update_all_corner_radii();
+        });
         s.applications.CORNER_WHEN_MAXIMIZED_changed(() => {
             if (s.applications.BLUR) host._applications_blur.update_all_corner_radii();
         });
