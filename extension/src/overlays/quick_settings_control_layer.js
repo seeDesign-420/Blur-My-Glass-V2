@@ -225,9 +225,9 @@ export class QuickSettingsControlBlurLayer {
         this._close_source_id = 0;
     }
 
-    _upsertSurface(actor, shape) {
+    _upsertSurface(actor, boundsActor, shape) {
         let surface = this._surfaces.get(actor);
-        if (surface && surface.shape !== shape) {
+        if (surface && (surface.shape !== shape || surface.boundsActor !== boundsActor)) {
             surface.destroy();
             this._surfaces.delete(actor);
             surface = null;
@@ -235,13 +235,21 @@ export class QuickSettingsControlBlurLayer {
 
         if (!surface) {
             const id = `quick-settings-control-${this._nextSurfaceId++}`;
-            surface = new QuickSettingsControlBlurSurface(this.runtime, this, actor, shape, id);
+            surface = new QuickSettingsControlBlurSurface(
+                this.runtime,
+                this,
+                actor,
+                boundsActor,
+                shape,
+                id
+            );
             this._surfaces.set(actor, surface);
             surface.enable();
             this.runtime._perfCount('quick-settings.surfaces_created');
             return surface;
         }
 
+        surface.boundsActor = boundsActor;
         surface.shape = shape;
         surface.sync();
         return surface;
@@ -257,11 +265,11 @@ export class QuickSettingsControlBlurLayer {
 
     _collectSurfaceCandidates(grid) {
         const controls = [];
-        for (const { actor, shape } of collectQuickSettingsControls(grid)) {
-            if (!this._isEligiblePerControlActor(actor))
+        for (const { actor, boundsActor, shape } of collectQuickSettingsControls(grid)) {
+            if (!this._isEligiblePerControlActor(boundsActor ?? actor))
                 continue;
 
-            controls.push({ actor, shape });
+            controls.push({ actor, boundsActor, shape });
             if (controls.length >= MAX_QUICK_SETTINGS_CONTROL_SURFACES) {
                 this.runtime._perfCount('quick-settings.surface_cap_hits');
                 break;
@@ -305,9 +313,9 @@ export class QuickSettingsControlBlurLayer {
         this._shown = true;
 
         const keepActors = new Set();
-        for (const { actor, shape } of this._collectSurfaceCandidates(grid)) {
+        for (const { actor, boundsActor, shape } of this._collectSurfaceCandidates(grid)) {
             keepActors.add(actor);
-            this._upsertSurface(actor, shape);
+            this._upsertSurface(actor, boundsActor, shape);
         }
 
         for (const [actor, surface] of this._surfaces.entries()) {

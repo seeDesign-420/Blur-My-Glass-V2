@@ -110,8 +110,12 @@ function isStButton(actor) {
     }
 }
 
+function getActorChildren(actor) {
+    return actor?.get_children?.() ?? [];
+}
+
 function actorHasTextualContent(actor) {
-    const queue = [...(actor?.get_children?.() ?? [])];
+    const queue = [...getActorChildren(actor)];
     while (queue.length > 0) {
         const child = queue.shift();
         if (!child)
@@ -131,8 +135,105 @@ function actorHasTextualContent(actor) {
     return false;
 }
 
+function getActorArea(actor) {
+    const [width, height] = getTransformSize(actor);
+    return width * height;
+}
+
+function actorHasMultipleButtonDescendants(actor) {
+    let buttonCount = 0;
+    const queue = [...getActorChildren(actor)];
+
+    while (queue.length > 0) {
+        const child = queue.shift();
+        if (!child || isQuickSettingsIgnoredActor(child))
+            continue;
+
+        if (isStButton(child) && ++buttonCount > 1)
+            return true;
+
+        const children = getActorChildren(child);
+        if (children.length)
+            queue.push(...children);
+    }
+
+    return false;
+}
+
+function isQuickSettingsHeaderContainer(actor) {
+    if (!actor)
+        return false;
+
+    const styleClass = actor.get_style_class_name?.() ?? '';
+    if (styleClass.includes('quick-settings-system-item'))
+        return true;
+
+    if (!isStButton(actor) || !actorHasTextualContent(actor) ||
+        !actorHasMultipleButtonDescendants(actor))
+        return false;
+
+    const [width, height] = getTransformSize(actor);
+    return width > 0 && height > 0 && width >= height * 2;
+}
+
+function isQuickSettingsPaintSurface(actor, shape) {
+    if (!actor || isQuickSettingsIgnoredActor(actor) || !actor.visible || !actor.mapped ||
+        !isPositiveSize(actor))
+        return false;
+    if (isQuickSettingsHeaderContainer(actor))
+        return false;
+
+    const styleClass = actor.get_style_class_name?.() ?? '';
+    if (styleClass.includes('quick-slider'))
+        return shape === 'rounded';
+
+    if (styleClass.includes('quick-toggle') || styleClass.includes('quick-toggle-has-menu'))
+        return true;
+
+    if (isStButton(actor))
+        return shape !== 'circle' || !actorHasTextualContent(actor);
+
+    return false;
+}
+
+function resolveQuickSettingsControlBoundsActor(actor, shape) {
+    let current = actor;
+    const visited = new Set();
+
+    while (current && !visited.has(current)) {
+        visited.add(current);
+
+        const children = (current.get_children?.() ?? [])
+            .filter(child => isQuickSettingsPaintSurface(child, shape));
+        if (children.length !== 1)
+            break;
+
+        const next = children[0];
+        const currentArea = Math.max(1, getActorArea(current));
+        const nextArea = getActorArea(next);
+        const currentStyle = current.get_style_class_name?.() ?? '';
+        const nextStyle = next.get_style_class_name?.() ?? '';
+        const nextIsMoreSpecific = nextStyle !== currentStyle ||
+            (!isStButton(current) && isStButton(next));
+
+        if (nextArea <= 0)
+            break;
+
+        // Only descend when the child is both more specific and materially smaller;
+        // otherwise we keep the logical control bounds.
+        if (!nextIsMoreSpecific || nextArea >= currentArea * 0.98)
+            break;
+
+        current = next;
+    }
+
+    return current ?? actor;
+}
+
 function classifyQuickSettingsControl(actor) {
     if (!actor || isQuickSettingsIgnoredActor(actor))
+        return null;
+    if (isQuickSettingsHeaderContainer(actor))
         return null;
 
     const styleClass = actor.get_style_class_name?.() ?? '';
@@ -155,7 +256,7 @@ function classifyQuickSettingsControl(actor) {
 export function collectQuickSettingsControls(root) {
     const controls = [];
     const seen = new Set();
-    const stack = [...(root?.get_children?.() ?? [])];
+    const stack = [...getActorChildren(root)];
 
     while (stack.length > 0) {
         const actor = stack.pop();
@@ -168,12 +269,16 @@ export function collectQuickSettingsControls(root) {
 
         const classification = classifyQuickSettingsControl(actor);
         if (classification) {
-            controls.push({ actor, ...classification });
+            controls.push({
+                actor,
+                boundsActor: resolveQuickSettingsControlBoundsActor(actor, classification.shape),
+                ...classification,
+            });
             continue;
         }
 
-        const children = actor.get_children?.();
-        if (children?.length)
+        const children = getActorChildren(actor);
+        if (children.length)
             stack.push(...children);
     }
 

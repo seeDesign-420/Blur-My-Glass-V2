@@ -10,18 +10,21 @@ import {
 } from './geometry.js';
 
 export class QuickSettingsControlBlurSurface {
-    constructor(runtime, layer, actor, shape, id) {
+    constructor(runtime, layer, actor, boundsActor, shape, id) {
         this.runtime = runtime;
         this.layer = layer;
         this.actor = actor;
+        this.boundsActor = boundsActor ?? actor;
         this.shape = shape;
         this.id = id;
         this._disposables = new DisposableStore();
         this._surfaceActor = null;
         this._bg_manager = null;
+        this._maskEffect = null;
         this._shown = false;
         this.destroyed = false;
         this._lastRect = null;
+        this._lastMaskState = null;
         this._geometryTracker = new BlurGeometryTracker(this._disposables, () => this.syncGeometry());
     }
 
@@ -29,15 +32,22 @@ export class QuickSettingsControlBlurSurface {
         if (this.destroyed || !this.actor)
             return;
 
-        this._connectLifecycle(this.actor);
+        this._connectLifecycle(this.actor, false);
+        if (this.boundsActor !== this.actor)
+            this._connectLifecycle(this.boundsActor, true);
         this.sync();
     }
 
-    _connectLifecycle(actor) {
+    _connectLifecycle(actor, isBoundsActor) {
         if (!actor)
             return;
 
-        this._connect(actor, 'destroy', () => this.destroy());
+        this._connect(actor, 'destroy', () => {
+            if (isBoundsActor)
+                this.layer.queueRefresh();
+            else
+                this.destroy();
+        });
         this._connect(actor, 'notify::visible', () => this.layer.queueRefresh());
         this._connect(actor, 'notify::mapped', () => this.layer.queueRefresh());
 
@@ -54,7 +64,8 @@ export class QuickSettingsControlBlurSurface {
     }
 
     _isReadyForOpen() {
-        return Boolean(this.actor?.visible && this.actor?.mapped && hasPositiveTransformedSize(this.actor));
+        return Boolean(this.actor?.visible && this.actor?.mapped && this.boundsActor?.visible &&
+            this.boundsActor?.mapped && hasPositiveTransformedSize(this.boundsActor));
     }
 
     _ensureSurface() {
@@ -77,8 +88,17 @@ export class QuickSettingsControlBlurSurface {
             this._surfaceActor.reactive = false;
             this._surfaceActor.can_focus = false;
             this._surfaceActor.track_hover = false;
+            this._surfaceActor.clip_to_allocation = true;
+            this._surfaceActor.set_clip(0, 0, 1, 1);
             this.runtime._perfCount('blur_surfaces.created');
             this.runtime._perfCount('blur_effects.created');
+
+            this._maskEffect = this.runtime.effects_manager.new_corner_effect({
+                radius: 0,
+                corners_top: true,
+                corners_bottom: true,
+            });
+            this._surfaceActor.add_effect(this._maskEffect);
         }
         return Boolean(this._surfaceActor);
     }
@@ -101,6 +121,13 @@ export class QuickSettingsControlBlurSurface {
         }
 
         try {
+            if (this._maskEffect)
+                this.runtime.effects_manager.remove(this._maskEffect);
+        } catch {
+            // Ignore mask teardown errors.
+        }
+
+        try {
             this._surfaceActor?.destroy?.();
         } catch {
             // Ignore actor teardown errors.
@@ -108,7 +135,9 @@ export class QuickSettingsControlBlurSurface {
 
         this._surfaceActor = null;
         this._bg_manager = null;
+        this._maskEffect = null;
         this._lastRect = null;
+        this._lastMaskState = null;
     }
 
     sync() {
@@ -142,11 +171,12 @@ export class QuickSettingsControlBlurSurface {
         if (!parent)
             return;
 
-        const [stageX, stageY] = getTransformPosition(this.actor);
-        let [stageWidth, stageHeight] = getTransformSize(this.actor);
+        const targetActor = this.boundsActor ?? this.actor;
+        const [stageX, stageY] = getTransformPosition(targetActor);
+        let [stageWidth, stageHeight] = getTransformSize(targetActor);
         if (stageWidth <= 0 || stageHeight <= 0) {
-            stageWidth = this.actor.width ?? this.actor.get_width?.() ?? 1;
-            stageHeight = this.actor.height ?? this.actor.get_height?.() ?? 1;
+            stageWidth = targetActor.width ?? targetActor.get_width?.() ?? 1;
+            stageHeight = targetActor.height ?? targetActor.get_height?.() ?? 1;
         }
 
         const targetRect = stageRectToActorSpace(parent, stageX, stageY, stageWidth, stageHeight);
@@ -155,12 +185,17 @@ export class QuickSettingsControlBlurSurface {
         const localWidth = Math.max(1, Math.round(targetRect.width));
         const localHeight = Math.max(1, Math.round(targetRect.height));
         const nextRect = { x: localX, y: localY, width: localWidth, height: localHeight };
+        const nextMaskState = this._resolveMaskState(localWidth, localHeight);
 
         if (this._lastRect &&
             this._lastRect.x === nextRect.x &&
             this._lastRect.y === nextRect.y &&
             this._lastRect.width === nextRect.width &&
-            this._lastRect.height === nextRect.height) {
+            this._lastRect.height === nextRect.height &&
+            this._lastMaskState &&
+            this._lastMaskState.radius === nextMaskState.radius &&
+            this._lastMaskState.corners_top === nextMaskState.corners_top &&
+            this._lastMaskState.corners_bottom === nextMaskState.corners_bottom) {
             this.runtime._perfCount('geometry.sync_skipped');
             return;
         }
@@ -174,16 +209,17 @@ export class QuickSettingsControlBlurSurface {
             this._surfaceActor.clip_to_allocation = true;
             this._surfaceActor.set_clip(0, 0, localWidth, localHeight);
 
-            if (this.shape === 'circle') {
-                const radius = Math.max(0, Math.min(localWidth, localHeight) / 2);
-                const pipeline = this._bg_manager?._bms_pipeline;
-                if (pipeline) {
-                    pipeline.effect_overrides.corner_radius = radius;
-                    if (pipeline.effect)
-                        pipeline.effect.unscaled_corner_radius = radius;
-                }
+            const pipeline = this._bg_manager?._bms_pipeline;
+            if (pipeline) {
+                pipeline.effect_overrides.corner_radius = nextMaskState.radius;
+                if (pipeline.effect)
+                    pipeline.effect.unscaled_corner_radius = nextMaskState.radius;
             }
 
+            if (this._maskEffect)
+                this._maskEffect.set(nextMaskState);
+
+            this._lastMaskState = nextMaskState;
             this._bg_manager?._bms_pipeline?.repaint_effect?.();
             this.runtime._perfCount('geometry.sync_applied');
         } catch (e) {
@@ -200,5 +236,16 @@ export class QuickSettingsControlBlurSurface {
         this._geometryTracker.dispose();
         this._disposables.dispose();
         this._destroySurface();
+    }
+
+    _resolveMaskState(width, height) {
+        const maxRadius = Math.max(0, Math.min(width, height) / 2);
+        const overlayRadius = Math.max(0, this.runtime.settings.overlays.CORNER_RADIUS ?? 0);
+        const radius = this.shape === 'circle' ? maxRadius : Math.min(overlayRadius, maxRadius);
+        return {
+            radius,
+            corners_top: true,
+            corners_bottom: true,
+        };
     }
 }
