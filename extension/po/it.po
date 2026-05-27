@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: blur-my-shell@aunetx\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-09 10:41+0200\n"
+"POT-Creation-Date: 2026-05-27 19:39+0200\n"
 "PO-Revision-Date: 2026-03-31 07:09+0000\n"
 "Last-Translator: tfr tint <tfrtint@gmail.com>\n"
 "Language-Team: Italian <https://hosted.weblate.org/projects/blur-my-shell/"
@@ -52,16 +52,18 @@ msgid "The intensity of the blur effect."
 msgstr "L'intensità dell'effetto sfocato."
 
 #: src/effects/effects.js:74 src/effects/effects.js:103
-#: src/effects/effects.js:140 resources/ui/applications.ui:93
-#: resources/ui/dash.ui:92 resources/ui/other.ui:77 resources/ui/overview.ui:75
-#: resources/ui/panel.ui:92
+#: src/effects/effects.js:140 resources/ui/applications.ui:42
+#: resources/ui/dash.ui:41 resources/ui/other.ui:41 resources/ui/overlays.ui:41
+#: resources/ui/overview.ui:41 resources/ui/overview.ui:132
+#: resources/ui/panel.ui:41
 msgid "Brightness"
 msgstr "Luminosità"
 
 #: src/effects/effects.js:75 src/effects/effects.js:104
-#: src/effects/effects.js:141 resources/ui/applications.ui:94
-#: resources/ui/dash.ui:93 resources/ui/other.ui:78 resources/ui/overview.ui:76
-#: resources/ui/panel.ui:93
+#: src/effects/effects.js:141 resources/ui/applications.ui:43
+#: resources/ui/dash.ui:42 resources/ui/overlays.ui:42
+#: resources/ui/overview.ui:42 resources/ui/overview.ui:133
+#: resources/ui/panel.ui:42
 msgid ""
 "The brightness of the blur effect, a high value might make the text harder "
 "to read."
@@ -473,71 +475,93 @@ msgstr ""
 "“Altro → Livello Hack”."
 
 #: resources/ui/applications.ui:21 resources/ui/dash.ui:20
+#: resources/ui/other.ui:20 resources/ui/overlays.ui:20
+#: resources/ui/overview.ui:20 resources/ui/overview.ui:111
 #: resources/ui/panel.ui:20
-msgid "Blur type"
-msgstr "Tipo di sfocatura"
-
-#: resources/ui/applications.ui:22
-msgid ""
-"The dynamic blur is slower and only compatible with a gaussian blur effect, "
-"but shows content behind windows."
-msgstr ""
-
-#: resources/ui/applications.ui:42 resources/ui/dash.ui:41
-#: resources/ui/panel.ui:41
-msgid "Static"
-msgstr "Statico"
-
-#: resources/ui/applications.ui:54 resources/ui/dash.ui:53
-#: resources/ui/panel.ui:53
-msgid "Dynamic"
-msgstr "Dinamico"
-
-#: resources/ui/applications.ui:72 resources/ui/dash.ui:71
-#: resources/ui/other.ui:56 resources/ui/overview.ui:54
-#: resources/ui/panel.ui:71
 msgid "Sigma"
 msgstr "Sigma"
 
-#: resources/ui/applications.ui:73 resources/ui/dash.ui:72
-#: resources/ui/other.ui:57 resources/ui/overview.ui:55
-#: resources/ui/panel.ui:72
+#: resources/ui/applications.ui:22 resources/ui/dash.ui:21
+#: resources/ui/overlays.ui:21 resources/ui/overview.ui:21
+#: resources/ui/overview.ui:112 resources/ui/panel.ui:21
 msgid "The intensity of the blur."
 msgstr "L'intensità della sfocatura."
 
-#: resources/ui/applications.ui:114 resources/ui/applications.ui:131
-#: resources/ui/dash.ui:113 resources/ui/dash.ui:130 resources/ui/panel.ui:113
-#: resources/ui/panel.ui:130
+#: resources/ui/applications.ui:63 resources/ui/dash.ui:62
+#: resources/ui/other.ui:62 resources/ui/overlays.ui:62
+#: resources/ui/overview.ui:62 resources/ui/overview.ui:153
+#: resources/ui/panel.ui:62
+msgid "Vibrancy"
+msgstr ""
+
+#: resources/ui/applications.ui:64
+msgid "Adds color richness while keeping the blurred window legible."
+msgstr ""
+
+#: resources/ui/applications.ui:84 resources/ui/dash.ui:109
+#: resources/ui/overlays.ui:83
+msgid "Refraction strength"
+msgstr ""
+
+#: resources/ui/applications.ui:85 resources/ui/dash.ui:110
+#: resources/ui/overlays.ui:84
+msgid "Strength of the liquid glass distortion."
+msgstr ""
+
+#: resources/ui/applications.ui:105 resources/ui/dash.ui:130
+#: resources/ui/overlays.ui:104
+msgid "Refraction radius"
+msgstr ""
+
+#: resources/ui/applications.ui:106 resources/ui/dash.ui:131
+#: resources/ui/overlays.ui:105
+msgid "Radius used by the liquid glass distortion."
+msgstr ""
+
+#: resources/ui/applications.ui:114 resources/ui/dash.ui:139
+#: resources/ui/overlays.ui:113
+msgid "Refraction inner rounding"
+msgstr ""
+
+#: resources/ui/applications.ui:115 resources/ui/dash.ui:140
+#: resources/ui/overlays.ui:114
+msgid "Additional rounding applied only to the inner refraction corners."
+msgstr ""
+
+#: resources/ui/applications.ui:123 resources/ui/applications.ui:140
+#: resources/ui/dash.ui:83 resources/ui/dash.ui:100
+#: resources/ui/overlays.ui:122 resources/ui/overlays.ui:139
+#: resources/ui/panel.ui:83 resources/ui/panel.ui:100
 msgid "Corner radius"
 msgstr ""
 
-#: resources/ui/applications.ui:115 resources/ui/dash.ui:114
-#: resources/ui/panel.ui:114
+#: resources/ui/applications.ui:124 resources/ui/dash.ui:84
+#: resources/ui/panel.ui:84
 msgid ""
 "In order to use rounded corners, please install the GNOME Rounded Blur "
 "library."
 msgstr ""
 
-#: resources/ui/applications.ui:132 resources/ui/dash.ui:131
-#: resources/ui/panel.ui:131
+#: resources/ui/applications.ui:141 resources/ui/dash.ui:101
+#: resources/ui/overlays.ui:140 resources/ui/panel.ui:101
 msgid "Radius for the corner rounding effect."
 msgstr ""
 
-#: resources/ui/applications.ui:140
+#: resources/ui/applications.ui:149
 msgid "Enable corner rounding on maximized and fullscreen"
 msgstr ""
 
-#: resources/ui/applications.ui:141
+#: resources/ui/applications.ui:150
 msgid ""
 "Corner rounding effect will keep being applied to maximized and fullscreen "
 "windows."
 msgstr ""
 
-#: resources/ui/applications.ui:155
+#: resources/ui/applications.ui:164
 msgid "Opacity"
 msgstr "Opacità"
 
-#: resources/ui/applications.ui:156
+#: resources/ui/applications.ui:165
 msgid ""
 "The opacity of the window on top of the blur effect, a higher value will be "
 "more legible."
@@ -545,11 +569,11 @@ msgstr ""
 "L'opacità della finestra sopra l'effetto di sfocatura; un valore più alto "
 "sarà più leggibile."
 
-#: resources/ui/applications.ui:177
+#: resources/ui/applications.ui:186
 msgid "Opaque focused window"
 msgstr "Finestra focalizzata opaca"
 
-#: resources/ui/applications.ui:178
+#: resources/ui/applications.ui:187
 msgid ""
 "Makes the focused window opaque and the other ones blurred, helping with "
 "legibility."
@@ -557,11 +581,11 @@ msgstr ""
 "Rende opaca la finestra focalizzata e sfocate le altre, aiutandone la "
 "leggibilità."
 
-#: resources/ui/applications.ui:192
+#: resources/ui/applications.ui:201
 msgid "Blur on overview"
 msgstr "Sfocatura nella panoramica"
 
-#: resources/ui/applications.ui:193
+#: resources/ui/applications.ui:202
 msgid ""
 "Forces the blur to be properly shown on all workspaces on overview.\n"
 "This may cause some latency or performance issues."
@@ -570,35 +594,35 @@ msgstr ""
 "lavoro nella panoramica.\n"
 "Ciò può causare problemi di latenza o di prestazioni."
 
-#: resources/ui/applications.ui:208
+#: resources/ui/applications.ui:217
 msgid "Enable all by default"
 msgstr "Abilita tutto per impostazione predefinita"
 
-#: resources/ui/applications.ui:209
+#: resources/ui/applications.ui:218
 msgid "Adds blur behind all windows by default."
 msgstr ""
 "Aggiunge la sfocatura dietro tutte le finestre per impostazione predefinita."
 
-#: resources/ui/applications.ui:225
+#: resources/ui/applications.ui:234
 msgid "Whitelist"
 msgstr "Whitelist"
 
-#: resources/ui/applications.ui:226
+#: resources/ui/applications.ui:235
 msgid ""
 "A list of windows to blur.\n"
 "Use * to match any sequence of characters (e.g., Firefox* or *Code*), and ? "
 "for a single one."
 msgstr ""
 
-#: resources/ui/applications.ui:245 resources/ui/applications.ui:283
+#: resources/ui/applications.ui:254 resources/ui/applications.ui:292
 msgid "Add Window"
 msgstr "Aggiungi finestra"
 
-#: resources/ui/applications.ui:263
+#: resources/ui/applications.ui:272
 msgid "Blacklist"
 msgstr "Blacklist"
 
-#: resources/ui/applications.ui:264
+#: resources/ui/applications.ui:273
 msgid ""
 "A list of windows not to blur.\n"
 "Use * to match any sequence of characters (e.g., Firefox* or *Code*), and ? "
@@ -606,79 +630,59 @@ msgid ""
 msgstr ""
 
 #: resources/ui/dash.ui:5
-msgid "Dash"
-msgstr "Dash"
+msgid "Dhruva"
+msgstr ""
 
 #: resources/ui/dash.ui:10
-msgid "Dash to Dock blur"
-msgstr "Sfocatura Dash to Dock"
+msgid "Dhruva Dock blur"
+msgstr ""
 
 #: resources/ui/dash.ui:11
-msgid "Blur the background of the Dash to Dock extension, if it is used."
-msgstr "Sfoca lo sfondo dell'estensione Dash to Dock, se utilizzata."
-
-#: resources/ui/dash.ui:21 resources/ui/panel.ui:21
-msgid ""
-"The dynamic blur is slower and only compatible with a gaussian blur effect."
+msgid "Blur the background of the Dhruva dock extension."
 msgstr ""
-"La sfocatura dinamica è più lenta e compatibile solo con un effetto di "
-"sfocatura gaussiana."
 
-#: resources/ui/dash.ui:139 resources/ui/panel.ui:154
+#: resources/ui/dash.ui:63
+msgid "Adds color richness while keeping the dock readable."
+msgstr ""
+
+#: resources/ui/dash.ui:148 resources/ui/panel.ui:124
 msgid "Override background"
 msgstr "Sovrascrivi sfondo"
 
-#: resources/ui/dash.ui:140
-msgid ""
-"Makes the background either transparent or semi-transparent, disable this to "
-"use Dash to Dock preferences instead."
+#: resources/ui/dash.ui:149
+msgid "Makes the background either transparent or semi-transparent."
 msgstr ""
-"Rende lo sfondo trasparente o semitrasparente, disabilitalo per utilizzare "
-"invece le preferenze Dash to Dock."
 
-#: resources/ui/dash.ui:146 resources/ui/panel.ui:162
+#: resources/ui/dash.ui:155 resources/ui/panel.ui:132
 msgid "Background style"
 msgstr "Stile di sfondo"
 
-#: resources/ui/dash.ui:147
+#: resources/ui/dash.ui:156
 msgid "The transparent/semi-transparent style for the dock background."
 msgstr "Lo stile trasparente/semitrasparente per lo sfondo del dock."
 
-#: resources/ui/dash.ui:163 resources/ui/panel.ui:193
+#: resources/ui/dash.ui:172 resources/ui/panel.ui:163
 msgid "Disable in overview"
 msgstr "Disattiva in panoramica"
 
-#: resources/ui/dash.ui:164
-msgid "Disables the blur from Dash to Dock when entering the overview."
+#: resources/ui/dash.ui:173
+msgid "Disables the blur from Dhruva Dock when entering the overview."
 msgstr ""
-"Disattiva la sfocatura da Dash to Dock quando si accede alla panoramica."
 
-#: resources/ui/dash.ui:199 resources/ui/overview.ui:118
-#: resources/ui/overview.ui:138 resources/ui/panel.ui:248
+#: resources/ui/dash.ui:232 resources/ui/overview.ui:196
+#: resources/ui/overview.ui:240 resources/ui/panel.ui:218
 msgid "Transparent"
 msgstr "Trasparente"
 
-#: resources/ui/dash.ui:200 resources/ui/overview.ui:116
-#: resources/ui/overview.ui:139 resources/ui/panel.ui:249
+#: resources/ui/dash.ui:233 resources/ui/overview.ui:194
+#: resources/ui/overview.ui:241 resources/ui/panel.ui:219
 msgid "Light"
 msgstr "Chiaro"
 
-#: resources/ui/dash.ui:201 resources/ui/overview.ui:117
-#: resources/ui/overview.ui:140 resources/ui/panel.ui:250
+#: resources/ui/dash.ui:234 resources/ui/overview.ui:195
+#: resources/ui/overview.ui:242 resources/ui/panel.ui:220
 msgid "Dark"
 msgstr "Scuro"
-
-#: resources/ui/effects-dialog.ui:4
-msgid "Effects"
-msgstr "Effetti"
-
-#: resources/ui/effects-dialog.ui:39
-msgid "Add Effect"
-msgstr "Aggiungi effetto"
-
-#: resources/ui/effects-dialog.ui:77
-msgid "Include advanced effects"
-msgstr "Include effetti avanzati"
 
 #: resources/ui/menu.ui:6
 msgid "Project page"
@@ -705,50 +709,34 @@ msgid "Lockscreen blur"
 msgstr "Sfocatura della schermata di blocco"
 
 #: resources/ui/other.ui:11
-msgid "Change the blur of the lockscreen to use this extension's preferences."
+msgid "Enable dynamic blur on the lockscreen background."
 msgstr ""
-"Modifica la sfocatura della schermata di blocco per utilizzare le preferenze "
-"di questa estensione."
 
-#: resources/ui/other.ui:28
-msgid "Screenshot blur"
-msgstr "Sfocatura dello screenshot"
-
-#: resources/ui/other.ui:29
-msgid "Add blur to the background of the window selector in the screenshot UI."
+#: resources/ui/other.ui:21
+msgid "The intensity of the lockscreen blur."
 msgstr ""
-"Aggiunge sfocatura allo sfondo dell'area di selezione della finestra nello "
-"strumento di cattura dello schermo."
 
-#: resources/ui/other.ui:46
-msgid "Window list extension blur"
-msgstr "Sfocatura estensione dell'elenco delle finestre"
+#: resources/ui/other.ui:42
+msgid "The brightness of the lockscreen blur effect."
+msgstr ""
 
-#: resources/ui/other.ui:47
-msgid "Make the window-list extension blurred, if it is used."
-msgstr "Rendi sfocata l'estensione dell'elenco di finestre, se utilizzata."
+#: resources/ui/other.ui:63
+msgid "Adds color richness while keeping lockscreen content readable."
+msgstr ""
 
-#: resources/ui/other.ui:100
-msgid "Coverflow Alt-Tab extension blur"
-msgstr "Estensione Alt-Tab Coverflow sfocata"
-
-#: resources/ui/other.ui:101
-msgid "Make the coverflow alt-tab extension blurred, if it is used."
-msgstr "Rendere sfocata l'estensione alt-tab di Coverflow, se utilizzata."
-
-#: resources/ui/other.ui:118
+#: resources/ui/other.ui:85
 msgid "Performance"
 msgstr "Prestazioni"
 
-#: resources/ui/other.ui:119
+#: resources/ui/other.ui:86
 msgid "Various options to tweak the performance."
 msgstr "Varie opzioni per modificare le prestazioni."
 
-#: resources/ui/other.ui:123
+#: resources/ui/other.ui:90
 msgid "Hack level"
 msgstr "Suggerimenti per le prestazioni"
 
-#: resources/ui/other.ui:124
+#: resources/ui/other.ui:91
 msgid ""
 "Changes the behaviour of the dynamic blur effect. The default value is "
 "highly recommended.\n"
@@ -761,11 +749,11 @@ msgstr ""
 "ritagliati nella shell GNOME e avrà un impatto significativo sulle "
 "prestazioni del tuo computer."
 
-#: resources/ui/other.ui:138
+#: resources/ui/other.ui:105
 msgid "Debug"
 msgstr "Debug"
 
-#: resources/ui/other.ui:139
+#: resources/ui/other.ui:106
 msgid ""
 "Makes the extension verbose in logs, activate when you need to report an "
 "issue."
@@ -773,29 +761,106 @@ msgstr ""
 "Rendi dettagliata l'estensione nei registri di sistema, abilitalo per "
 "segnalare un problema."
 
-#: resources/ui/other.ui:154
+#: resources/ui/other.ui:121
 msgid "Reset preferences"
 msgstr "Ripristina le preferenze"
 
-#: resources/ui/other.ui:155
+#: resources/ui/other.ui:122
 msgid "Resets preferences of Blur my Shell irreversibly."
 msgstr "Resetta le preferenze di Blur my Shell in modo irreversibile."
 
-#: resources/ui/other.ui:174
+#: resources/ui/other.ui:141
 msgid "Reset"
 msgstr "Resettare"
 
-#: resources/ui/other.ui:203
+#: resources/ui/other.ui:176
 msgid "High performances"
 msgstr "Alte prestazioni"
 
-#: resources/ui/other.ui:204
+#: resources/ui/other.ui:177
 msgid "Default"
 msgstr "Predefinito"
 
-#: resources/ui/other.ui:205
+#: resources/ui/other.ui:178
 msgid "No artifact"
 msgstr "Nessun artefatto"
+
+#: resources/ui/overlays.ui:5
+msgid "Overlays"
+msgstr ""
+
+#: resources/ui/overlays.ui:10
+msgid "Overlay blur"
+msgstr ""
+
+#: resources/ui/overlays.ui:11
+msgid "Shared blur profile for Shell overlays and pop-up menus."
+msgstr ""
+
+#: resources/ui/overlays.ui:63
+msgid "Adds color richness while keeping the overlay readable."
+msgstr ""
+
+#: resources/ui/overlays.ui:123
+msgid "Install the GNOME Rounded Blur library to enable rounded corners."
+msgstr ""
+
+#: resources/ui/overlays.ui:150
+msgid "Overlay targets"
+msgstr ""
+
+#: resources/ui/overlays.ui:151
+msgid "Choose which GNOME Shell overlays use the shared blur profile."
+msgstr ""
+
+#: resources/ui/overlays.ui:155
+msgid "Date and calendar menu"
+msgstr ""
+
+#: resources/ui/overlays.ui:156
+msgid "The top-bar calendar popover and its menu content."
+msgstr ""
+
+#: resources/ui/overlays.ui:169
+msgid "Quick Settings"
+msgstr ""
+
+#: resources/ui/overlays.ui:170
+msgid "The system menu opened from the top bar."
+msgstr ""
+
+#: resources/ui/overlays.ui:183
+msgid "Notifications"
+msgstr ""
+
+#: resources/ui/overlays.ui:184
+msgid ""
+"Notification banners and the notification list inside the calendar popover."
+msgstr ""
+
+#: resources/ui/overlays.ui:197
+msgid "OSD overlays"
+msgstr ""
+
+#: resources/ui/overlays.ui:198
+msgid "Volume, brightness, and other on-screen display popups."
+msgstr ""
+
+#: resources/ui/overlays.ui:211
+msgid "Desktop context menus"
+msgstr ""
+
+#: resources/ui/overlays.ui:212
+msgid "Menus opened from the desktop background."
+msgstr ""
+
+#: resources/ui/overlays.ui:225
+msgid "App and jump-list menus"
+msgstr ""
+
+#: resources/ui/overlays.ui:226
+msgid "Application menus and window lists opened from Shell popups."
+msgstr ""
 
 #: resources/ui/overview.ui:5
 msgid "Overview"
@@ -811,11 +876,15 @@ msgstr ""
 "Aggiungi sfocatura allo sfondo della panoramica, utilizzando l'immagine "
 "dello sfondo."
 
-#: resources/ui/overview.ui:26
+#: resources/ui/overview.ui:63
+msgid "Adds color richness while keeping overview content readable."
+msgstr ""
+
+#: resources/ui/overview.ui:83
 msgid "Overview components style"
 msgstr "Panoramica stile componenti"
 
-#: resources/ui/overview.ui:27
+#: resources/ui/overview.ui:84
 msgid ""
 "The semi-transparent style for the dash, search entry/results, and "
 "application folders."
@@ -823,27 +892,31 @@ msgstr ""
 "Lo stile semitrasparente per la dash, la voce/risultati di ricerca e le "
 "cartelle dell'applicazione."
 
-#: resources/ui/overview.ui:44
+#: resources/ui/overview.ui:101
 msgid "Application folder blur"
 msgstr "Sfocatura cartella applicazione"
 
-#: resources/ui/overview.ui:45
+#: resources/ui/overview.ui:102
 msgid "Makes the background of application folder dialogs blurred."
 msgstr ""
 "Rende sfocato lo sfondo delle finestre di dialogo delle cartelle "
 "dell'applicazione."
 
-#: resources/ui/overview.ui:96
+#: resources/ui/overview.ui:154
+msgid "Adds color richness while keeping the folder dialog readable."
+msgstr ""
+
+#: resources/ui/overview.ui:174
 msgid "Application folder dialogs style"
 msgstr "Stile finestre di dialogo cartella dell'applicazione"
 
-#: resources/ui/overview.ui:97
+#: resources/ui/overview.ui:175
 msgid "The semi-transparent style for the application folder dialogs."
 msgstr ""
 "Lo stile semitrasparente per le finestre di dialogo delle cartelle "
 "dell'applicazione."
 
-#: resources/ui/overview.ui:115 resources/ui/overview.ui:137
+#: resources/ui/overview.ui:193 resources/ui/overview.ui:239
 msgid "Do not style"
 msgstr "Non dare stile"
 
@@ -856,21 +929,25 @@ msgid "Panel blur"
 msgstr "Sfocatura pannello"
 
 #: resources/ui/panel.ui:11
-msgid "Blur the top panel using the background image."
-msgstr "Sfoca il pannello superiore usando l'immagine di sfondo."
+msgid "Blur the top panel with the current dynamic background material."
+msgstr ""
 
-#: resources/ui/panel.ui:139
+#: resources/ui/panel.ui:63
+msgid "Adds color richness while keeping the blur readable."
+msgstr ""
+
+#: resources/ui/panel.ui:109
 msgid "Force light text"
 msgstr "Forza il testo chiaro"
 
-#: resources/ui/panel.ui:140
+#: resources/ui/panel.ui:110
 msgid ""
 "Use a light text for the panel, useful when using gnome-shell's light theme."
 msgstr ""
 "Utilizza un testo chiaro per il pannello, utile quando si utilizza il tema "
 "chiaro di gnome-shell."
 
-#: resources/ui/panel.ui:155
+#: resources/ui/panel.ui:125
 msgid ""
 "Override the background of the panel to use a transparent or semi-"
 "transparent one.\n"
@@ -880,45 +957,45 @@ msgstr ""
 "semitrasparente.\n"
 "Consigliato a meno che tu non voglia personalizzare il tuo tema GNOME."
 
-#: resources/ui/panel.ui:163
+#: resources/ui/panel.ui:133
 msgid "The transparent/semi-transparent style for the panel background."
 msgstr "Lo stile trasparente/semitrasparente per lo sfondo del pannello."
 
-#: resources/ui/panel.ui:177
+#: resources/ui/panel.ui:147
 msgid "Disable when a window is near"
 msgstr "Disattiva quando una finestra è vicina"
 
-#: resources/ui/panel.ui:178
+#: resources/ui/panel.ui:148
 msgid "Disables the transparency of the panel when a window is near it."
 msgstr "Disattiva la trasparenza del pannello quando una finestra è vicina."
 
-#: resources/ui/panel.ui:194
+#: resources/ui/panel.ui:164
 msgid "Disables the blur from the panel when entering the overview."
 msgstr "Disattiva la sfocatura dal pannello quando si accede alla panoramica."
 
-#: resources/ui/panel.ui:210
+#: resources/ui/panel.ui:180
 msgid "Compatibility"
 msgstr "Compatibilità"
 
-#: resources/ui/panel.ui:211
+#: resources/ui/panel.ui:181
 msgid "Various options to provide compatibility with other extensions."
 msgstr "Varie opzioni per fornire compatibilità con altre estensioni."
 
-#: resources/ui/panel.ui:216
+#: resources/ui/panel.ui:186
 msgid "Hidetopbar extension"
 msgstr "Estensione Hidetopbar"
 
-#: resources/ui/panel.ui:217
-msgid "Does not disable the blur in overview, best used with static blur."
+#: resources/ui/panel.ui:187
+msgid ""
+"Does not disable the blur in overview when Hidetopbar controls panel "
+"visibility."
 msgstr ""
-"Non disabilita la sfocatura nella panoramica, meglio utilizzata con la "
-"sfocatura statica."
 
-#: resources/ui/panel.ui:231
+#: resources/ui/panel.ui:201
 msgid "Blur original panel with Dash to Panel"
 msgstr "Sfoca il pannello originale con Dash to Panel"
 
-#: resources/ui/panel.ui:232
+#: resources/ui/panel.ui:202
 msgid ""
 "Enables the blurring of the original panel with Dash to Panel, if selected "
 "in the extension's options."
@@ -926,300 +1003,6 @@ msgstr ""
 "Abilita la sfocatura del pannello originale con Dash to Panel, se "
 "selezionato nelle opzioni dell'estensione."
 
-#: resources/ui/panel.ui:251
+#: resources/ui/panel.ui:221
 msgid "Contrasted"
 msgstr "Contrastato"
-
-#: resources/ui/pipeline-choose-row.ui:4
-msgid "Pipeline"
-msgstr "Tubazione"
-
-#: resources/ui/pipeline-choose-row.ui:5
-msgid "The pipeline to be used with this component."
-msgstr "La pipeline da utilizzare con questo componente."
-
-#: resources/ui/pipeline-group.ui:6
-msgid "Pipeline name"
-msgstr "Nome della pipeline"
-
-#: resources/ui/pipeline-group.ui:20
-msgid "Manage effects"
-msgstr "Gestisci gli effetti"
-
-#: resources/ui/pipelines.ui:5
-msgid "Pipelines"
-msgstr "Pipeline"
-
-#: resources/ui/pipelines.ui:10
-msgid ""
-"Each component uses a pipeline, which can be chosen in the corresponding "
-"tab. Here you can create, modify and delete the pipelines and their effects."
-msgstr ""
-"Ogni componente utilizza una pipeline, che può essere scelta nella scheda "
-"corrispondente. Qui puoi creare, modificare ed eliminare le pipeline e i "
-"loro effetti."
-
-#: resources/ui/pipelines.ui:29
-msgid "Add Pipeline"
-msgstr "Aggiungi pipeline"
-
-#~ msgid "A list of windows to blur."
-#~ msgstr "Un elenco di finestre da sfocare."
-
-#~ msgid "A list of windows not to blur."
-#~ msgstr "Un elenco di finestre da non sfocare."
-
-#~ msgid "Gaussian blur"
-#~ msgstr "Sfocatura gaussiana"
-
-#~ msgid "Divider"
-#~ msgstr "Divisore"
-
-#~ msgid "Applications blur (beta)"
-#~ msgstr "Sfocatura applicazioni (beta)"
-
-#~ msgid ""
-#~ "Adds blur to the applications. This is still beta functionality.\n"
-#~ "To get the best results possible, make sure to choose the option “No "
-#~ "artifact” in the “General → Hack level” preference.\n"
-#~ "        "
-#~ msgstr ""
-#~ "Aggiunge sfocatura alle applicazioni. Questa è ancora una funzionalità "
-#~ "beta.\n"
-#~ "Per ottenere i migliori risultati possibili, assicurati di scegliere "
-#~ "l'opzione \"Nessun artefatto\" nella preferenza \"Generale → Livello di "
-#~ "hack\".\n"
-#~ "        "
-
-#~ msgid ""
-#~ "Adds blur behind all windows by default.\n"
-#~ "Not recommended because of performance and stability issues."
-#~ msgstr ""
-#~ "Aggiunge la sfocatura dietro tutte le finestre per impostazione "
-#~ "predefinita.\n"
-#~ "Sconsigliato per problemi di prestazioni e stabilità."
-
-#~ msgid "Customize properties"
-#~ msgstr "Personalizza le proprietà"
-
-#~ msgid ""
-#~ "Uses customized blur properties, instead of the ones set in the General "
-#~ "page."
-#~ msgstr ""
-#~ "Utilizza proprietà di sfocatura personalizzate, invece di quelle "
-#~ "impostate nella pagina Generale."
-
-#~ msgid ""
-#~ "Changes the color of the blur. The opacity of the color controls how much "
-#~ "it is blended into the blur effect."
-#~ msgstr ""
-#~ "Cambia il colore della sfocatura. L'opacità del colore controlla quanto "
-#~ "viene sfumato nell'effetto di sfocatura."
-
-#~ msgid "Noise amount"
-#~ msgstr "Quantità di rumore"
-
-#~ msgid ""
-#~ "The amount of noise to add to the blur effect, useful on low-contrast "
-#~ "screens or for aesthetic purpose."
-#~ msgstr ""
-#~ "La quantità di rumore da aggiungere all'effetto sfocato, utile su schermi "
-#~ "a basso contrasto o per scopi estetici."
-
-#~ msgid "Noise lightness"
-#~ msgstr "Leggerezza del rumore"
-
-#~ msgid "The lightness of the noise added to the blur effect."
-#~ msgstr "La leggerezza del rumore si aggiungeva all'effetto sfocato."
-
-#~ msgid "Notice"
-#~ msgstr "Avviso"
-
-#~ msgid ""
-#~ "Noise and color can't be activated on dynamically blurred components, "
-#~ "such as this one."
-#~ msgstr ""
-#~ "Il rumore e il colore non possono essere attivati su componenti sfocati "
-#~ "dinamicamente, come questo."
-
-#~ msgid "Static blur"
-#~ msgstr "Sfocatura statica"
-
-#~ msgid ""
-#~ "Uses a static blurred image, can be used with rounding effect.\n"
-#~ "<b>Important notice:</b> with this activated, you should not use a big "
-#~ "sigma value as it will deteriorate performances."
-#~ msgstr ""
-#~ "Utilizza un'immagine sfocata statica, può essere utilizzata con effetto "
-#~ "arrotondato.\n"
-#~ "<b>Avviso importante:</b> con questa opzione attivata, non dovresti "
-#~ "utilizzare un valore sigma elevato poiché peggiorerebbe le prestazioni."
-
-#~ msgid "Rounded corner radius"
-#~ msgstr "Raggio dell'angolo arrotondato"
-
-#~ msgid "The radius for the rounding effect. Only available with static blur."
-#~ msgstr ""
-#~ "Il raggio per l'effetto di arrotondamento. Disponibile solo con sfocatura "
-#~ "statica."
-
-#~ msgid "General"
-#~ msgstr "Generale"
-
-#~ msgid "Blur preferences"
-#~ msgstr "Preferenze sfocatura"
-
-#~ msgid "Global blur preferences, used by all components by default."
-#~ msgstr ""
-#~ "Preferenze di sfocatura globali, utilizzate per impostazione predefinita "
-#~ "da tutti i componenti."
-
-#~ msgid "Color and noise effects"
-#~ msgstr "Effetti di colore e rumore"
-
-#~ msgid ""
-#~ "Globally disables noise and color effects which may improve performance "
-#~ "on low-end systems."
-#~ msgstr ""
-#~ "Disattiva globalmente il rumore e gli effetti di colore che possono "
-#~ "migliorare le prestazioni sui sistemi di fascia bassa."
-
-#~ msgid ""
-#~ "Changes the behaviour of the dynamic blur effect.\n"
-#~ "The default value is highly recommended unless you use application blur, "
-#~ "in which case “No artifact” is better.\n"
-#~ "This option will entirely disable clipped redraws in GNOME shell, and may "
-#~ "impact performance significantly but will completely fix the blur effect."
-#~ msgstr ""
-#~ "Modifica il comportamento dell'effetto di sfocatura dinamica.\n"
-#~ "Il valore predefinito è altamente raccomandato a meno che non utilizzi la "
-#~ "sfocatura dell'applicazione, nel qual caso \"Nessun artefatto\" è "
-#~ "meglio.\n"
-#~ "Questa opzione disabiliterà completamente i ridisegni ritagliati nella "
-#~ "shell di GNOME e potrebbe influire in modo significativo sulle "
-#~ "prestazioni, ma risolverà completamente l'effetto sfocato."
-
-#~ msgid "High quality"
-#~ msgstr "Alta qualità"
-
-#~ msgid "Uses a static blurred image, more performant and stable."
-#~ msgstr "Utilizza un'immagine sfocata statica, più performante e stabile."
-
-#~ msgid "Uses a static blurred image, can be used with rounding effect."
-#~ msgstr ""
-#~ "Utilizza un'immagine statica sfocata, può essere utilizzata con effetto "
-#~ "arrotondato."
-
-#~ msgid ""
-#~ "Add blur to the applications. This is still a beta functionnality.\n"
-#~ "To get the best results possible, make sure to choose option “No "
-#~ "artefact” in the “General → Hack level” preference.\n"
-#~ "        "
-#~ msgstr ""
-#~ "Aggiunge la sfocatura alle applicazioni. Si tratta ancora di una "
-#~ "funzionalità beta.\n"
-#~ "Per ottenere i migliori risultati possibili, assicuratevi di scegliere "
-#~ "l'opzione \"Nessun artefatto\" nelle preferenze \"Generale → Livello "
-#~ "hack\".\n"
-#~ "        "
-
-#~ msgid ""
-#~ "Makes the background semi-transparent, disable this to use Dash to Dock "
-#~ "preferences instead."
-#~ msgstr ""
-#~ "Rende lo sfondo semitrasparente, disabilitalo per utilizzare invece le "
-#~ "preferenze Dash to Dock."
-
-#~ msgid "Performances"
-#~ msgstr "Prestazioni"
-
-#~ msgid "Various options to tweak the performances."
-#~ msgstr "Varie opzioni per modificare le prestazioni."
-
-#~ msgid ""
-#~ "Permits to disable globally the use of noise and color effects, this may "
-#~ "improve performances for low-end graphic."
-#~ msgstr ""
-#~ "Consente di disabilitare globalmente l'uso del rumore e degli effetti "
-#~ "colore, questo può migliorare le prestazioni per la grafica di fascia "
-#~ "bassa."
-
-#~ msgid ""
-#~ "Changes the behaviour of dynamic blur effect.\n"
-#~ "Default value is very recommended, unless you use application blur in "
-#~ "which case “No artefact” is better.\n"
-#~ "This option will entirely disable clipped redraws from GNOME shell, and "
-#~ "may impact performances significantly but will entirely fix the blur "
-#~ "effect."
-#~ msgstr ""
-#~ "Modifica il comportamento dell'effetto di sfocatura dinamica.\n"
-#~ "Il valore predefinito è molto consigliato, a meno che non si utilizzi la "
-#~ "sfocatura delle applicazioni, nel qual caso è meglio \"Nessun "
-#~ "artefatto\".\n"
-#~ "Questa opzione disabilita completamente i ridisegni ritagliati dalla "
-#~ "shell di GNOME e può avere un impatto significativo sulle prestazioni, ma "
-#~ "risolve completamente l'effetto di sfocatura."
-
-#~ msgid "No artefact"
-#~ msgstr "Nessun artefatto"
-
-#~ msgid ""
-#~ "The semi-transparent style for the dash, search entry/results, and "
-#~ "applications folders."
-#~ msgstr ""
-#~ "Lo stile semitrasparente per la dash, la voce/risultati di ricerca e le "
-#~ "cartelle delle applicazioni."
-
-#~ msgid "Applications folder blur"
-#~ msgstr "Sfocatura della cartella delle applicazioni"
-
-#~ msgid "Makes the background of folder icons blurred."
-#~ msgstr "Rende sfocato lo sfondo delle icone delle cartelle."
-
-#~ msgid "Dialog opacity"
-#~ msgstr "Opacità di dialogo"
-
-#~ msgid "The opacity of the applications folder popup."
-#~ msgstr "L'opacità del popup della cartella delle applicazioni."
-
-#~ msgid ""
-#~ "Override the background of the panel to use a transparent one.\n"
-#~ "Recommended unless you want to customize your GNOME theme."
-#~ msgstr ""
-#~ "Sovrascrive lo sfondo del pannello per utilizzarne uno trasparente.\n"
-#~ "Consigliato a meno che non si voglia personalizzare il tema di GNOME."
-
-#~ msgid ""
-#~ "Add blur to the applications. This is still a beta functionnality, is "
-#~ "quite buggy and is only applied to the apps that ask it, or to the ones "
-#~ "set in the whitelist below."
-#~ msgstr ""
-#~ "Aggiungi sfocatura alle applicazioni. Questa è ancora una funzionalità "
-#~ "beta, è piuttosto buggata e viene applicata solo alle app che lo "
-#~ "richiedono o a quelle impostate nella whitelist di seguito."
-
-#~ msgid ""
-#~ "Adds blur behind all windows by default. Not recommended because of "
-#~ "performance and stability issues."
-#~ msgstr ""
-#~ "Aggiunge sfocatura dietro tutte le finestre per impostazione predefinita. "
-#~ "Non consigliato a causa di problemi di prestazioni e stabilità."
-
-#~ msgid ""
-#~ "Changes the behaviour of dynamic blur effect. Default value is very "
-#~ "recommended."
-#~ msgstr ""
-#~ "Modifica il comportamento dell'effetto di sfocatura dinamica. Il valore "
-#~ "di default è molto raccomandato."
-
-#~ msgid "Disables the blur from the panel when a window is near it."
-#~ msgstr "Disattiva la sfocatura dal pannello quando una finestra è vicina."
-
-#~ msgid ""
-#~ "A list of the applications to blur, one per line. To get an application "
-#~ "class name, under xorg you can use `xprop|grep WM_CLASS` and paste the "
-#~ "last name here."
-#~ msgstr ""
-#~ "Un elenco delle applicazioni da sfocare, una per riga. Per ottenere un "
-#~ "nome di classe dell'applicazione, sotto xorg puoi usare `xprop|grep "
-#~ "WM_CLASS` e incollare qui il nome nome."

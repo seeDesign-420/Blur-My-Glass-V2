@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-09 10:41+0200\n"
+"POT-Creation-Date: 2026-05-27 19:39+0200\n"
 "PO-Revision-Date: 2025-04-06 17:36+0000\n"
 "Last-Translator: Anonymous <noreply@weblate.org>\n"
 "Language-Team: Afrikaans <https://hosted.weblate.org/projects/blur-my-shell/"
@@ -50,16 +50,18 @@ msgid "The intensity of the blur effect."
 msgstr ""
 
 #: src/effects/effects.js:74 src/effects/effects.js:103
-#: src/effects/effects.js:140 resources/ui/applications.ui:93
-#: resources/ui/dash.ui:92 resources/ui/other.ui:77 resources/ui/overview.ui:75
-#: resources/ui/panel.ui:92
+#: src/effects/effects.js:140 resources/ui/applications.ui:42
+#: resources/ui/dash.ui:41 resources/ui/other.ui:41 resources/ui/overlays.ui:41
+#: resources/ui/overview.ui:41 resources/ui/overview.ui:132
+#: resources/ui/panel.ui:41
 msgid "Brightness"
 msgstr "Helderheid"
 
 #: src/effects/effects.js:75 src/effects/effects.js:104
-#: src/effects/effects.js:141 resources/ui/applications.ui:94
-#: resources/ui/dash.ui:93 resources/ui/other.ui:78 resources/ui/overview.ui:76
-#: resources/ui/panel.ui:93
+#: src/effects/effects.js:141 resources/ui/applications.ui:43
+#: resources/ui/dash.ui:42 resources/ui/overlays.ui:42
+#: resources/ui/overview.ui:42 resources/ui/overview.ui:133
+#: resources/ui/panel.ui:42
 msgid ""
 "The brightness of the blur effect, a high value might make the text harder "
 "to read."
@@ -444,71 +446,93 @@ msgid ""
 msgstr ""
 
 #: resources/ui/applications.ui:21 resources/ui/dash.ui:20
+#: resources/ui/other.ui:20 resources/ui/overlays.ui:20
+#: resources/ui/overview.ui:20 resources/ui/overview.ui:111
 #: resources/ui/panel.ui:20
-msgid "Blur type"
-msgstr ""
-
-#: resources/ui/applications.ui:22
-msgid ""
-"The dynamic blur is slower and only compatible with a gaussian blur effect, "
-"but shows content behind windows."
-msgstr ""
-
-#: resources/ui/applications.ui:42 resources/ui/dash.ui:41
-#: resources/ui/panel.ui:41
-msgid "Static"
-msgstr ""
-
-#: resources/ui/applications.ui:54 resources/ui/dash.ui:53
-#: resources/ui/panel.ui:53
-msgid "Dynamic"
-msgstr ""
-
-#: resources/ui/applications.ui:72 resources/ui/dash.ui:71
-#: resources/ui/other.ui:56 resources/ui/overview.ui:54
-#: resources/ui/panel.ui:71
 msgid "Sigma"
 msgstr "Sigma"
 
-#: resources/ui/applications.ui:73 resources/ui/dash.ui:72
-#: resources/ui/other.ui:57 resources/ui/overview.ui:55
-#: resources/ui/panel.ui:72
+#: resources/ui/applications.ui:22 resources/ui/dash.ui:21
+#: resources/ui/overlays.ui:21 resources/ui/overview.ui:21
+#: resources/ui/overview.ui:112 resources/ui/panel.ui:21
 msgid "The intensity of the blur."
 msgstr "Die intensiteit van die vervaging."
 
-#: resources/ui/applications.ui:114 resources/ui/applications.ui:131
-#: resources/ui/dash.ui:113 resources/ui/dash.ui:130 resources/ui/panel.ui:113
-#: resources/ui/panel.ui:130
+#: resources/ui/applications.ui:63 resources/ui/dash.ui:62
+#: resources/ui/other.ui:62 resources/ui/overlays.ui:62
+#: resources/ui/overview.ui:62 resources/ui/overview.ui:153
+#: resources/ui/panel.ui:62
+msgid "Vibrancy"
+msgstr ""
+
+#: resources/ui/applications.ui:64
+msgid "Adds color richness while keeping the blurred window legible."
+msgstr ""
+
+#: resources/ui/applications.ui:84 resources/ui/dash.ui:109
+#: resources/ui/overlays.ui:83
+msgid "Refraction strength"
+msgstr ""
+
+#: resources/ui/applications.ui:85 resources/ui/dash.ui:110
+#: resources/ui/overlays.ui:84
+msgid "Strength of the liquid glass distortion."
+msgstr ""
+
+#: resources/ui/applications.ui:105 resources/ui/dash.ui:130
+#: resources/ui/overlays.ui:104
+msgid "Refraction radius"
+msgstr ""
+
+#: resources/ui/applications.ui:106 resources/ui/dash.ui:131
+#: resources/ui/overlays.ui:105
+msgid "Radius used by the liquid glass distortion."
+msgstr ""
+
+#: resources/ui/applications.ui:114 resources/ui/dash.ui:139
+#: resources/ui/overlays.ui:113
+msgid "Refraction inner rounding"
+msgstr ""
+
+#: resources/ui/applications.ui:115 resources/ui/dash.ui:140
+#: resources/ui/overlays.ui:114
+msgid "Additional rounding applied only to the inner refraction corners."
+msgstr ""
+
+#: resources/ui/applications.ui:123 resources/ui/applications.ui:140
+#: resources/ui/dash.ui:83 resources/ui/dash.ui:100
+#: resources/ui/overlays.ui:122 resources/ui/overlays.ui:139
+#: resources/ui/panel.ui:83 resources/ui/panel.ui:100
 msgid "Corner radius"
 msgstr ""
 
-#: resources/ui/applications.ui:115 resources/ui/dash.ui:114
-#: resources/ui/panel.ui:114
+#: resources/ui/applications.ui:124 resources/ui/dash.ui:84
+#: resources/ui/panel.ui:84
 msgid ""
 "In order to use rounded corners, please install the GNOME Rounded Blur "
 "library."
 msgstr ""
 
-#: resources/ui/applications.ui:132 resources/ui/dash.ui:131
-#: resources/ui/panel.ui:131
+#: resources/ui/applications.ui:141 resources/ui/dash.ui:101
+#: resources/ui/overlays.ui:140 resources/ui/panel.ui:101
 msgid "Radius for the corner rounding effect."
 msgstr ""
 
-#: resources/ui/applications.ui:140
+#: resources/ui/applications.ui:149
 msgid "Enable corner rounding on maximized and fullscreen"
 msgstr ""
 
-#: resources/ui/applications.ui:141
+#: resources/ui/applications.ui:150
 msgid ""
 "Corner rounding effect will keep being applied to maximized and fullscreen "
 "windows."
 msgstr ""
 
-#: resources/ui/applications.ui:155
+#: resources/ui/applications.ui:164
 msgid "Opacity"
 msgstr "Ondeursigtigheid"
 
-#: resources/ui/applications.ui:156
+#: resources/ui/applications.ui:165
 msgid ""
 "The opacity of the window on top of the blur effect, a higher value will be "
 "more legible."
@@ -516,21 +540,21 @@ msgstr ""
 "Die ondeursigtigheid van die venster bo-op die vervaag effek. 'n Hoër waarde "
 "sal meer leesbaar wees."
 
-#: resources/ui/applications.ui:177
+#: resources/ui/applications.ui:186
 msgid "Opaque focused window"
 msgstr ""
 
-#: resources/ui/applications.ui:178
+#: resources/ui/applications.ui:187
 msgid ""
 "Makes the focused window opaque and the other ones blurred, helping with "
 "legibility."
 msgstr ""
 
-#: resources/ui/applications.ui:192
+#: resources/ui/applications.ui:201
 msgid "Blur on overview"
 msgstr "Vervaag op oorsig"
 
-#: resources/ui/applications.ui:193
+#: resources/ui/applications.ui:202
 msgid ""
 "Forces the blur to be properly shown on all workspaces on overview.\n"
 "This may cause some latency or performance issues."
@@ -539,34 +563,34 @@ msgstr ""
 "word. \n"
 "Dit kan vertragings- of prestasieprobleme veroorsaak."
 
-#: resources/ui/applications.ui:208
+#: resources/ui/applications.ui:217
 msgid "Enable all by default"
 msgstr "Aktiveer alles as die standaard"
 
-#: resources/ui/applications.ui:209
+#: resources/ui/applications.ui:218
 msgid "Adds blur behind all windows by default."
 msgstr ""
 
-#: resources/ui/applications.ui:225
+#: resources/ui/applications.ui:234
 msgid "Whitelist"
 msgstr "Witlys"
 
-#: resources/ui/applications.ui:226
+#: resources/ui/applications.ui:235
 msgid ""
 "A list of windows to blur.\n"
 "Use * to match any sequence of characters (e.g., Firefox* or *Code*), and ? "
 "for a single one."
 msgstr ""
 
-#: resources/ui/applications.ui:245 resources/ui/applications.ui:283
+#: resources/ui/applications.ui:254 resources/ui/applications.ui:292
 msgid "Add Window"
 msgstr "Voeg venster"
 
-#: resources/ui/applications.ui:263
+#: resources/ui/applications.ui:272
 msgid "Blacklist"
 msgstr "Swartlys"
 
-#: resources/ui/applications.ui:264
+#: resources/ui/applications.ui:273
 msgid ""
 "A list of windows not to blur.\n"
 "Use * to match any sequence of characters (e.g., Firefox* or *Code*), and ? "
@@ -574,79 +598,59 @@ msgid ""
 msgstr ""
 
 #: resources/ui/dash.ui:5
-msgid "Dash"
-msgstr "Dash"
+msgid "Dhruva"
+msgstr ""
 
 #: resources/ui/dash.ui:10
-msgid "Dash to Dock blur"
-msgstr "Dash to Dock vervaging"
+msgid "Dhruva Dock blur"
+msgstr ""
 
 #: resources/ui/dash.ui:11
-msgid "Blur the background of the Dash to Dock extension, if it is used."
-msgstr ""
-"Vervaag die agtergrond van die Dash to Dock uitbreiding, indien dit gebruik "
-"word."
-
-#: resources/ui/dash.ui:21 resources/ui/panel.ui:21
-msgid ""
-"The dynamic blur is slower and only compatible with a gaussian blur effect."
+msgid "Blur the background of the Dhruva dock extension."
 msgstr ""
 
-#: resources/ui/dash.ui:139 resources/ui/panel.ui:154
+#: resources/ui/dash.ui:63
+msgid "Adds color richness while keeping the dock readable."
+msgstr ""
+
+#: resources/ui/dash.ui:148 resources/ui/panel.ui:124
 msgid "Override background"
 msgstr "Oorskryf agtergrond"
 
-#: resources/ui/dash.ui:140
-msgid ""
-"Makes the background either transparent or semi-transparent, disable this to "
-"use Dash to Dock preferences instead."
+#: resources/ui/dash.ui:149
+msgid "Makes the background either transparent or semi-transparent."
 msgstr ""
-"Maak die agtergrond óf deursigtig óf half-deursigtig. Deaktiveer dit om "
-"eerder Dash to Dock voorkeure te gebruik."
 
-#: resources/ui/dash.ui:146 resources/ui/panel.ui:162
+#: resources/ui/dash.ui:155 resources/ui/panel.ui:132
 msgid "Background style"
 msgstr "Agtergrond styl"
 
-#: resources/ui/dash.ui:147
+#: resources/ui/dash.ui:156
 msgid "The transparent/semi-transparent style for the dock background."
 msgstr "Die (half-)deursigtige styl vir die dock agtergrond."
 
-#: resources/ui/dash.ui:163 resources/ui/panel.ui:193
+#: resources/ui/dash.ui:172 resources/ui/panel.ui:163
 msgid "Disable in overview"
 msgstr "Deaktiveer in oorsig"
 
-#: resources/ui/dash.ui:164
-msgid "Disables the blur from Dash to Dock when entering the overview."
+#: resources/ui/dash.ui:173
+msgid "Disables the blur from Dhruva Dock when entering the overview."
 msgstr ""
-"Deaktiveer die vervaag van Dash to Dock wanneer die oorsig binnegegaan word."
 
-#: resources/ui/dash.ui:199 resources/ui/overview.ui:118
-#: resources/ui/overview.ui:138 resources/ui/panel.ui:248
+#: resources/ui/dash.ui:232 resources/ui/overview.ui:196
+#: resources/ui/overview.ui:240 resources/ui/panel.ui:218
 msgid "Transparent"
 msgstr "Deursigtig"
 
-#: resources/ui/dash.ui:200 resources/ui/overview.ui:116
-#: resources/ui/overview.ui:139 resources/ui/panel.ui:249
+#: resources/ui/dash.ui:233 resources/ui/overview.ui:194
+#: resources/ui/overview.ui:241 resources/ui/panel.ui:219
 msgid "Light"
 msgstr "Lig"
 
-#: resources/ui/dash.ui:201 resources/ui/overview.ui:117
-#: resources/ui/overview.ui:140 resources/ui/panel.ui:250
+#: resources/ui/dash.ui:234 resources/ui/overview.ui:195
+#: resources/ui/overview.ui:242 resources/ui/panel.ui:220
 msgid "Dark"
 msgstr "Donker"
-
-#: resources/ui/effects-dialog.ui:4
-msgid "Effects"
-msgstr ""
-
-#: resources/ui/effects-dialog.ui:39
-msgid "Add Effect"
-msgstr ""
-
-#: resources/ui/effects-dialog.ui:77
-msgid "Include advanced effects"
-msgstr ""
 
 #: resources/ui/menu.ui:6
 msgid "Project page"
@@ -673,49 +677,34 @@ msgid "Lockscreen blur"
 msgstr "Vervaging van sluitskerm"
 
 #: resources/ui/other.ui:11
-msgid "Change the blur of the lockscreen to use this extension's preferences."
-msgstr ""
-"Verander die vervaging van die sluitskerm om hierdie uitbreiding se "
-"voorkeure te gebruik."
-
-#: resources/ui/other.ui:28
-msgid "Screenshot blur"
-msgstr "Vervaging op skermskoot"
-
-#: resources/ui/other.ui:29
-msgid "Add blur to the background of the window selector in the screenshot UI."
-msgstr ""
-"Voeg vervaging by die agtergrond van die vensterkieser in die skermskoot-UI."
-
-#: resources/ui/other.ui:46
-msgid "Window list extension blur"
-msgstr "Vervaging van die vensterlys-uitbreiding"
-
-#: resources/ui/other.ui:47
-msgid "Make the window-list extension blurred, if it is used."
-msgstr "Maak die vensterlys-uitbreiding vaag, indien dit gebruik word."
-
-#: resources/ui/other.ui:100
-msgid "Coverflow Alt-Tab extension blur"
+msgid "Enable dynamic blur on the lockscreen background."
 msgstr ""
 
-#: resources/ui/other.ui:101
-msgid "Make the coverflow alt-tab extension blurred, if it is used."
+#: resources/ui/other.ui:21
+msgid "The intensity of the lockscreen blur."
 msgstr ""
 
-#: resources/ui/other.ui:118
+#: resources/ui/other.ui:42
+msgid "The brightness of the lockscreen blur effect."
+msgstr ""
+
+#: resources/ui/other.ui:63
+msgid "Adds color richness while keeping lockscreen content readable."
+msgstr ""
+
+#: resources/ui/other.ui:85
 msgid "Performance"
 msgstr "Prestasies"
 
-#: resources/ui/other.ui:119
+#: resources/ui/other.ui:86
 msgid "Various options to tweak the performance."
 msgstr "Verskeie opsies om die prestasie aan te pas."
 
-#: resources/ui/other.ui:123
+#: resources/ui/other.ui:90
 msgid "Hack level"
 msgstr "Kuberkrakervlak"
 
-#: resources/ui/other.ui:124
+#: resources/ui/other.ui:91
 msgid ""
 "Changes the behaviour of the dynamic blur effect. The default value is "
 "highly recommended.\n"
@@ -723,11 +712,11 @@ msgid ""
 "shell, and will impact your computer performances significantly."
 msgstr ""
 
-#: resources/ui/other.ui:138
+#: resources/ui/other.ui:105
 msgid "Debug"
 msgstr "Foutopsporing"
 
-#: resources/ui/other.ui:139
+#: resources/ui/other.ui:106
 msgid ""
 "Makes the extension verbose in logs, activate when you need to report an "
 "issue."
@@ -735,29 +724,106 @@ msgstr ""
 "Maak 'n uitgebeide register van logs. Aktiveer wanneer jy 'n probleem moet "
 "aanmeld."
 
-#: resources/ui/other.ui:154
+#: resources/ui/other.ui:121
 msgid "Reset preferences"
 msgstr "Herstel voorkeure"
 
-#: resources/ui/other.ui:155
+#: resources/ui/other.ui:122
 msgid "Resets preferences of Blur my Shell irreversibly."
 msgstr "Herstel onomkeerbaar die voorkeure van Blur my Shell."
 
-#: resources/ui/other.ui:174
+#: resources/ui/other.ui:141
 msgid "Reset"
 msgstr "Herstel"
 
-#: resources/ui/other.ui:203
+#: resources/ui/other.ui:176
 msgid "High performances"
 msgstr "Hoe prestasies"
 
-#: resources/ui/other.ui:204
+#: resources/ui/other.ui:177
 msgid "Default"
 msgstr "Standaard"
 
-#: resources/ui/other.ui:205
+#: resources/ui/other.ui:178
 msgid "No artifact"
 msgstr "Geen artefak"
+
+#: resources/ui/overlays.ui:5
+msgid "Overlays"
+msgstr ""
+
+#: resources/ui/overlays.ui:10
+msgid "Overlay blur"
+msgstr ""
+
+#: resources/ui/overlays.ui:11
+msgid "Shared blur profile for Shell overlays and pop-up menus."
+msgstr ""
+
+#: resources/ui/overlays.ui:63
+msgid "Adds color richness while keeping the overlay readable."
+msgstr ""
+
+#: resources/ui/overlays.ui:123
+msgid "Install the GNOME Rounded Blur library to enable rounded corners."
+msgstr ""
+
+#: resources/ui/overlays.ui:150
+msgid "Overlay targets"
+msgstr ""
+
+#: resources/ui/overlays.ui:151
+msgid "Choose which GNOME Shell overlays use the shared blur profile."
+msgstr ""
+
+#: resources/ui/overlays.ui:155
+msgid "Date and calendar menu"
+msgstr ""
+
+#: resources/ui/overlays.ui:156
+msgid "The top-bar calendar popover and its menu content."
+msgstr ""
+
+#: resources/ui/overlays.ui:169
+msgid "Quick Settings"
+msgstr ""
+
+#: resources/ui/overlays.ui:170
+msgid "The system menu opened from the top bar."
+msgstr ""
+
+#: resources/ui/overlays.ui:183
+msgid "Notifications"
+msgstr ""
+
+#: resources/ui/overlays.ui:184
+msgid ""
+"Notification banners and the notification list inside the calendar popover."
+msgstr ""
+
+#: resources/ui/overlays.ui:197
+msgid "OSD overlays"
+msgstr ""
+
+#: resources/ui/overlays.ui:198
+msgid "Volume, brightness, and other on-screen display popups."
+msgstr ""
+
+#: resources/ui/overlays.ui:211
+msgid "Desktop context menus"
+msgstr ""
+
+#: resources/ui/overlays.ui:212
+msgid "Menus opened from the desktop background."
+msgstr ""
+
+#: resources/ui/overlays.ui:225
+msgid "App and jump-list menus"
+msgstr ""
+
+#: resources/ui/overlays.ui:226
+msgid "Application menus and window lists opened from Shell popups."
+msgstr ""
 
 #: resources/ui/overview.ui:5
 msgid "Overview"
@@ -772,11 +838,15 @@ msgid "Add blur to the overview background, using the wallpaper picture."
 msgstr ""
 "Voeg vervaag by die oorsig-agtergrond deur die muurpapierprentjie te gebruik."
 
-#: resources/ui/overview.ui:26
+#: resources/ui/overview.ui:63
+msgid "Adds color richness while keeping overview content readable."
+msgstr ""
+
+#: resources/ui/overview.ui:83
 msgid "Overview components style"
 msgstr "Styl van oorsigkomponente"
 
-#: resources/ui/overview.ui:27
+#: resources/ui/overview.ui:84
 msgid ""
 "The semi-transparent style for the dash, search entry/results, and "
 "application folders."
@@ -784,23 +854,27 @@ msgstr ""
 "Die half-deursigtige styl vir die dash, soekinskrywing/resultate en app-"
 "vouers."
 
-#: resources/ui/overview.ui:44
+#: resources/ui/overview.ui:101
 msgid "Application folder blur"
 msgstr "Vervaging van app-vouers"
 
-#: resources/ui/overview.ui:45
+#: resources/ui/overview.ui:102
 msgid "Makes the background of application folder dialogs blurred."
 msgstr "Vervaag die agtergrond van app-vouerdialoë."
 
-#: resources/ui/overview.ui:96
+#: resources/ui/overview.ui:154
+msgid "Adds color richness while keeping the folder dialog readable."
+msgstr ""
+
+#: resources/ui/overview.ui:174
 msgid "Application folder dialogs style"
 msgstr "Dialoogstyl van app-vouers"
 
-#: resources/ui/overview.ui:97
+#: resources/ui/overview.ui:175
 msgid "The semi-transparent style for the application folder dialogs."
 msgstr "Die half-deursigtige styl vir die app-vouerdialoë."
 
-#: resources/ui/overview.ui:115 resources/ui/overview.ui:137
+#: resources/ui/overview.ui:193 resources/ui/overview.ui:239
 msgid "Do not style"
 msgstr "Moet nie stileer nie"
 
@@ -813,21 +887,25 @@ msgid "Panel blur"
 msgstr "Paneelvervaging"
 
 #: resources/ui/panel.ui:11
-msgid "Blur the top panel using the background image."
-msgstr "Vervaag die boonste paneel met die agtergrondprent."
+msgid "Blur the top panel with the current dynamic background material."
+msgstr ""
 
-#: resources/ui/panel.ui:139
+#: resources/ui/panel.ui:63
+msgid "Adds color richness while keeping the blur readable."
+msgstr ""
+
+#: resources/ui/panel.ui:109
 msgid "Force light text"
 msgstr "Forseer ligte teks"
 
-#: resources/ui/panel.ui:140
+#: resources/ui/panel.ui:110
 msgid ""
 "Use a light text for the panel, useful when using gnome-shell's light theme."
 msgstr ""
 "Gebruik 'n ligte teks vir die paneel, nuttig wanneer gnome-shell se ligte "
 "tema gebruik word."
 
-#: resources/ui/panel.ui:155
+#: resources/ui/panel.ui:125
 msgid ""
 "Override the background of the panel to use a transparent or semi-"
 "transparent one.\n"
@@ -837,47 +915,47 @@ msgstr ""
 "een te gebruik.\n"
 "Aanbeveel tensy jy jou GNOME-tema wil aanpas."
 
-#: resources/ui/panel.ui:163
+#: resources/ui/panel.ui:133
 msgid "The transparent/semi-transparent style for the panel background."
 msgstr "Die (half-)deursigtige styl vir die paneelagtergrond."
 
-#: resources/ui/panel.ui:177
+#: resources/ui/panel.ui:147
 msgid "Disable when a window is near"
 msgstr "Deaktiveer wanneer 'n venster naby is"
 
-#: resources/ui/panel.ui:178
+#: resources/ui/panel.ui:148
 msgid "Disables the transparency of the panel when a window is near it."
 msgstr ""
 "Deaktiveer die deursigtigheid van die paneel wanneer 'n venster naby is."
 
-#: resources/ui/panel.ui:194
+#: resources/ui/panel.ui:164
 msgid "Disables the blur from the panel when entering the overview."
 msgstr ""
 "Deaktiveer die vervaging op die paneel wanneer die oorsig oopgemaak word."
 
-#: resources/ui/panel.ui:210
+#: resources/ui/panel.ui:180
 msgid "Compatibility"
 msgstr "Verenigbaarheid"
 
-#: resources/ui/panel.ui:211
+#: resources/ui/panel.ui:181
 msgid "Various options to provide compatibility with other extensions."
 msgstr "Verskeie opsies om verenigbaarheid met ander uitbreidings te bied."
 
-#: resources/ui/panel.ui:216
+#: resources/ui/panel.ui:186
 msgid "Hidetopbar extension"
 msgstr "Hidetopbar-uitbreiding"
 
-#: resources/ui/panel.ui:217
-msgid "Does not disable the blur in overview, best used with static blur."
+#: resources/ui/panel.ui:187
+msgid ""
+"Does not disable the blur in overview when Hidetopbar controls panel "
+"visibility."
 msgstr ""
-"Deaktiveer nie die vervaging in oorsig nie, verkieslik gebruik saam met "
-"statiese vervaging."
 
-#: resources/ui/panel.ui:231
+#: resources/ui/panel.ui:201
 msgid "Blur original panel with Dash to Panel"
 msgstr "Vervaag oorspronklike paneel met Dash to Panel"
 
-#: resources/ui/panel.ui:232
+#: resources/ui/panel.ui:202
 msgid ""
 "Enables the blurring of the original panel with Dash to Panel, if selected "
 "in the extension's options."
@@ -885,151 +963,6 @@ msgstr ""
 "Aktiveer die vervaging van die oorspronklike paneel met Dash to Panel, "
 "indien gekies in die uitbreidingvoorkeure."
 
-#: resources/ui/panel.ui:251
+#: resources/ui/panel.ui:221
 msgid "Contrasted"
 msgstr "Gekontrasteer"
-
-#: resources/ui/pipeline-choose-row.ui:4
-msgid "Pipeline"
-msgstr ""
-
-#: resources/ui/pipeline-choose-row.ui:5
-msgid "The pipeline to be used with this component."
-msgstr ""
-
-#: resources/ui/pipeline-group.ui:6
-msgid "Pipeline name"
-msgstr ""
-
-#: resources/ui/pipeline-group.ui:20
-msgid "Manage effects"
-msgstr ""
-
-#: resources/ui/pipelines.ui:5
-msgid "Pipelines"
-msgstr ""
-
-#: resources/ui/pipelines.ui:10
-msgid ""
-"Each component uses a pipeline, which can be chosen in the corresponding "
-"tab. Here you can create, modify and delete the pipelines and their effects."
-msgstr ""
-
-#: resources/ui/pipelines.ui:29
-msgid "Add Pipeline"
-msgstr ""
-
-#~ msgid "A list of windows to blur."
-#~ msgstr "'n Lys van vensters om te vervaag."
-
-#~ msgid "A list of windows not to blur."
-#~ msgstr "'n Lys van vensters om nie te vervaag."
-
-#~ msgid "Applications blur (beta)"
-#~ msgstr "Apps vervaag (beta)"
-
-#~ msgid ""
-#~ "Adds blur to the applications. This is still beta functionality.\n"
-#~ "To get the best results possible, make sure to choose the option “No "
-#~ "artifact” in the “General → Hack level” preference.\n"
-#~ "        "
-#~ msgstr ""
-#~ "Voeg vervaging by die apps. Dit is steeds 'n beta-funksionaliteit.\n"
-#~ "Om die beste resultate moontlik te kry, kies die opsie “Geen artefak” in "
-#~ "die “Algemeen → Kuberkrakervlak” voorkeur.\n"
-#~ "        "
-
-#~ msgid ""
-#~ "Adds blur behind all windows by default.\n"
-#~ "Not recommended because of performance and stability issues."
-#~ msgstr ""
-#~ "Voeg vervaag agter alle vensters as die standaard.\n"
-#~ "Nie aanbeveel nie weens prestasie- en stabiliteitskwessies."
-
-#~ msgid "Customize properties"
-#~ msgstr "Pas eienskappe aan"
-
-#~ msgid ""
-#~ "Uses customized blur properties, instead of the ones set in the General "
-#~ "page."
-#~ msgstr ""
-#~ "Gebruik pasgemaakte vervaag-eienskappe in plaas van dié wat op die "
-#~ "Algemeneblad gestel is."
-
-#~ msgid ""
-#~ "Changes the color of the blur. The opacity of the color controls how much "
-#~ "it is blended into the blur effect."
-#~ msgstr ""
-#~ "Verander die kleur van die vervaag. Die ondeursigtigheid van die kleur "
-#~ "beheer hoeveel dit in die vervaag-effek gemeng word."
-
-#~ msgid "Noise amount"
-#~ msgstr "Hoeveelheid geraas"
-
-#~ msgid ""
-#~ "The amount of noise to add to the blur effect, useful on low-contrast "
-#~ "screens or for aesthetic purpose."
-#~ msgstr ""
-#~ "Die hoeveelheid geraas om by die vervaag effek te voeg. Nuttig op lae "
-#~ "kontras skerms of vir estetiese doeleindes."
-
-#~ msgid "Noise lightness"
-#~ msgstr "Ligtheid van geraas"
-
-#~ msgid "The lightness of the noise added to the blur effect."
-#~ msgstr "Die ligtheid van die geraas bygedra tot die vervaag effek."
-
-#~ msgid "Notice"
-#~ msgstr "Kennisgewing"
-
-#~ msgid ""
-#~ "Noise and color can't be activated on dynamically blurred components, "
-#~ "such as this one."
-#~ msgstr ""
-#~ "Geraas en kleur kan nie op dinamies vervaagde komponente geaktiveer word "
-#~ "nie; soos hierdie een."
-
-#~ msgid "Static blur"
-#~ msgstr "Statiese vervaging"
-
-#~ msgid "General"
-#~ msgstr "Algemeen"
-
-#~ msgid "Blur preferences"
-#~ msgstr "Vervaag voorkeure"
-
-#~ msgid "Global blur preferences, used by all components by default."
-#~ msgstr ""
-#~ "Globale vervaag-voorkeure wat as standaard deur alle komponente gebruik "
-#~ "word."
-
-#~ msgid "Color and noise effects"
-#~ msgstr "Kleur- en geraas-effekte"
-
-#~ msgid ""
-#~ "Globally disables noise and color effects which may improve performance "
-#~ "on low-end systems."
-#~ msgstr ""
-#~ "Deaktiveer geraas- en kleur-effekte wat werkverrigting op lae-end "
-#~ "stelsels kan verbeter."
-
-#~ msgid ""
-#~ "Changes the behaviour of the dynamic blur effect.\n"
-#~ "The default value is highly recommended unless you use application blur, "
-#~ "in which case “No artifact” is better.\n"
-#~ "This option will entirely disable clipped redraws in GNOME shell, and may "
-#~ "impact performance significantly but will completely fix the blur effect."
-#~ msgstr ""
-#~ "Verander die gedrag van die dinamiese vervaag effek.\n"
-#~ "Die standaardwaarde word sterk aanbeveel tensy jy vervaag-app gebruik. In "
-#~ "welke geval is “Geen artefak” beter.\n"
-#~ "Hierdie opsie sal geknipte hertekeninge in GNOME shell heeltemal "
-#~ "deaktiveer en kan prestasie aansienlik beïnvloed, maar sal die vervaag-"
-#~ "effek regmaak."
-
-#~ msgid "High quality"
-#~ msgstr "Hoe kwaliteit"
-
-#~ msgid "Uses a static blurred image, more performant and stable."
-#~ msgstr ""
-#~ "Gebruik 'n statiese vervaagde beeld, dit is meer werksaam en stabiel."

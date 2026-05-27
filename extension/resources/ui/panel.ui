@@ -8,7 +8,7 @@
     <child>
       <object class="AdwPreferencesGroup">
         <property name="title" translatable="yes">Panel blur</property>
-        <property name="description" translatable="yes">Blur the top panel using the background image.</property>
+        <property name="description" translatable="yes">Blur the top panel with the current dynamic background material.</property>
         <property name="header-suffix">
           <object class="GtkSwitch" id="blur">
             <property name="valign">center</property>
