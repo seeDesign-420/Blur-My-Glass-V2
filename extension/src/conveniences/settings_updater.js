@@ -1,11 +1,10 @@
 import { Settings } from './settings.js';
-import { KEYS, DEPRECATED_KEYS } from './keys.js';
+import { KEYS } from './keys.js';
 
-const CURRENT_SETTINGS_VERSION = 7;
+const CURRENT_SETTINGS_VERSION = 8;
 
 export function update_from_old_settings(gsettings) {
     const preferences = new Settings(KEYS, gsettings);
-    const deprecated_preferences = new Settings(DEPRECATED_KEYS, gsettings);
     const old_version = preferences.settings.get_int('settings-version');
 
     if (old_version < 2) {
@@ -16,25 +15,6 @@ export function update_from_old_settings(gsettings) {
             preferences.HACKS_LEVEL = 1;
 
         preferences.dhruva.BLUR = true;
-
-        // 'customize' has been removed: we merge the current used settings
-        ['appfolder', 'panel', 'dhruva', 'applications'].forEach(
-            component_name => {
-                const deprecated_component = deprecated_preferences[component_name];
-                const new_component = preferences[component_name];
-                if (deprecated_component && !deprecated_component.CUSTOMIZE) {
-                    new_component.SIGMA = deprecated_preferences.SIGMA;
-                    new_component.BRIGHTNESS = deprecated_preferences.BRIGHTNESS;
-                    if (
-                        new_component.CORNER_RADIUS !== undefined &&
-                        deprecated_component.CORNER_RADIUS !== undefined
-                    )
-                        new_component.CORNER_RADIUS = deprecated_component.CORNER_RADIUS;
-                }
-            });
-
-        // remove old preferences in order not to clutter the gsettings
-        deprecated_preferences.reset();
     }
 
     if (old_version < 3) {

@@ -5,43 +5,8 @@
         path="/org/gnome/shell/extensions/blur-my-shell/">
         <!-- SETTINGS VERSION -->
         <key type="i" name="settings-version">
-            <default>1</default>
+            <default>8</default>
             <summary>The version of the settings to update from.</summary>
-        </key>
-        <!-- SIGMA -->
-        <key type="i" name="sigma">
-            <default>30</default>
-            <summary>Global gaussian sigma to use</summary>
-        </key>
-        <!-- BRIGHTNESS -->
-        <key type="d" name="brightness">
-            <default>0.6</default>
-            <summary>Global brightness to use</summary>
-        </key>
-        <!-- VIBRANCY -->
-        <key type="d" name="vibrancy">
-            <default>0.</default>
-            <summary>Global vibrancy to use</summary>
-        </key>
-        <!-- COLOR -->
-        <key type="(dddd)" name="color">
-            <default>(0.,0.,0.,0.)</default>
-            <summary>Color to mix with the blur effect</summary>
-        </key>
-        <!-- NOISE AMOUNT -->
-        <key type="d" name="noise-amount">
-            <default>0.</default>
-            <summary>Amount of noise to add to the blur effect</summary>
-        </key>
-        <!-- NOISE LIGHTNESS -->
-        <key type="d" name="noise-lightness">
-            <default>0.</default>
-            <summary>Lightness of the noise added to the blur effect</summary>
-        </key>
-        <!-- COLOR AND NOISE -->
-        <key type="b" name="color-and-noise">
-            <default>true</default>
-            <summary>Boolean, controls wether or not the color and noise effects are in use globally</summary>
         </key>
         <!-- HACKS LEVEL -->
         <key type="i" name="hacks-level">
@@ -78,11 +43,6 @@
             <default>true</default>
             <summary>Boolean, whether to blur activate the blur for this component or not</summary>
         </key>
-        <!-- CUSTOMIZE -->
-        <key type="b" name="customize">
-            <default>false</default>
-            <summary>Boolean, whether to customize the blur effect sigma/brightness or use general values</summary>
-        </key>
         <!-- SIGMA -->
         <key type="i" name="sigma">
             <default>30</default>
@@ -97,21 +57,6 @@
         <key type="d" name="vibrancy">
             <default>0.</default>
             <summary>Vibrancy to use for the blur effect</summary>
-        </key>
-        <!-- COLOR -->
-        <key type="(dddd)" name="color">
-            <default>(0.,0.,0.,0.)</default>
-            <summary>Color to mix with the blur effect</summary>
-        </key>
-        <!-- NOISE AMOUNT -->
-        <key type="d" name="noise-amount">
-            <default>0.</default>
-            <summary>Amount of noise to add to the blur effect</summary>
-        </key>
-        <!-- NOISE LIGHTNESS -->
-        <key type="d" name="noise-lightness">
-            <default>0.</default>
-            <summary>Lightness of the noise added to the blur effect</summary>
         </key>
         <!-- STYLE COMPONENTS -->
         <key type="i" name="style-components">
@@ -203,11 +148,6 @@
             <default>true</default>
             <summary>Boolean, whether to blur activate the blur for this component or not</summary>
         </key>
-        <!-- CUSTOMIZE -->
-        <key type="b" name="customize">
-            <default>false</default>
-            <summary>Boolean, whether to customize the blur effect sigma/brightness or use general values</summary>
-        </key>
         <!-- SIGMA -->
         <key type="i" name="sigma">
             <default>30</default>
@@ -223,21 +163,6 @@
             <default>0.</default>
             <summary>Vibrancy to use for the blur effect</summary>
         </key>
-        <!-- COLOR -->
-        <key type="(dddd)" name="color">
-            <default>(0.,0.,0.,0.)</default>
-            <summary>Color to mix with the blur effect</summary>
-        </key>
-        <!-- NOISE AMOUNT -->
-        <key type="d" name="noise-amount">
-            <default>0.</default>
-            <summary>Amount of noise to add to the blur effect</summary>
-        </key>
-        <!-- NOISE LIGHTNESS -->
-        <key type="d" name="noise-lightness">
-            <default>0.</default>
-            <summary>Lightness of the noise added to the blur effect</summary>
-        </key>
         <!-- STYLE DIALOGS -->
         <key type="i" name="style-dialogs">
             <default>1</default>
@@ -252,11 +177,6 @@
         <key type="b" name="blur">
             <default>true</default>
             <summary>Boolean, whether to blur activate the blur for this component or not</summary>
-        </key>
-        <!-- CUSTOMIZE -->
-        <key type="b" name="customize">
-            <default>false</default>
-            <summary>Boolean, whether to customize the blur effect sigma/brightness or use general values</summary>
         </key>
         <!-- SIGMA -->
         <key type="i" name="sigma">
@@ -277,21 +197,6 @@
         <key type="i" name="corner-radius">
             <default>0</default>
             <summary>Radius for the corner rounding effect</summary>
-        </key>
-        <!-- COLOR -->
-        <key type="(dddd)" name="color">
-            <default>(0.,0.,0.,0.)</default>
-            <summary>Color to mix with the blur effect</summary>
-        </key>
-        <!-- NOISE AMOUNT -->
-        <key type="d" name="noise-amount">
-            <default>0.</default>
-            <summary>Amount of noise to add to the blur effect</summary>
-        </key>
-        <!-- NOISE LIGHTNESS -->
-        <key type="d" name="noise-lightness">
-            <default>0.</default>
-            <summary>Lightness of the noise added to the blur effect</summary>
         </key>
         <!-- UNBLUR IN OVERVIEW -->
         <key type="b" name="unblur-in-overview">
@@ -328,11 +233,6 @@
         <key type="b" name="blur">
             <default>true</default>
             <summary>Boolean, whether to blur activate the blur for Dhruva dock or not</summary>
-        </key>
-        <!-- CUSTOMIZE -->
-        <key type="b" name="customize">
-            <default>false</default>
-            <summary>Boolean, whether to customize the blur effect sigma/brightness or use general values</summary>
         </key>
         <!-- SIGMA -->
         <key type="i" name="sigma">
@@ -379,11 +279,6 @@
             <default>false</default>
             <summary>Boolean, whether to blur activate the blur for this component or not</summary>
         </key>
-        <!-- CUSTOMIZE -->
-        <key type="b" name="customize">
-            <default>true</default>
-            <summary>Boolean, whether to customize the blur effect sigma/brightness or use general values</summary>
-        </key>
         <!-- SIGMA -->
         <key type="i" name="sigma">
             <default>30</default>
@@ -423,21 +318,6 @@
         <key type="b" name="corner-when-maximized">
             <default>false</default>
             <summary>Boolean, whether to keep rounding the corners of fullscreen and maximized window or not</summary>
-        </key>
-        <!-- COLOR -->
-        <key type="(dddd)" name="color">
-            <default>(0.,0.,0.,0.)</default>
-            <summary>Color to mix with the blur effect</summary>
-        </key>
-        <!-- NOISE AMOUNT -->
-        <key type="d" name="noise-amount">
-            <default>0.</default>
-            <summary>Amount of noise to add to the blur effect</summary>
-        </key>
-        <!-- NOISE LIGHTNESS -->
-        <key type="d" name="noise-lightness">
-            <default>0.</default>
-            <summary>Lightness of the noise added to the blur effect</summary>
         </key>
         <!-- OPACITY -->
         <key type="i" name="opacity">
@@ -480,11 +360,6 @@
             <default>true</default>
             <summary>Boolean, whether to blur activate the blur for this component or not</summary>
         </key>
-        <!-- CUSTOMIZE -->
-        <key type="b" name="customize">
-            <default>false</default>
-            <summary>Boolean, whether to customize the blur effect sigma/brightness or use general values</summary>
-        </key>
         <!-- SIGMA -->
         <key type="i" name="sigma">
             <default>30</default>
@@ -499,21 +374,6 @@
         <key type="d" name="vibrancy">
             <default>0.</default>
             <summary>Vibrancy to use for the blur effect</summary>
-        </key>
-        <!-- COLOR -->
-        <key type="(dddd)" name="color">
-            <default>(0.,0.,0.,0.)</default>
-            <summary>Color to mix with the blur effect</summary>
-        </key>
-        <!-- NOISE AMOUNT -->
-        <key type="d" name="noise-amount">
-            <default>0.</default>
-            <summary>Amount of noise to add to the blur effect</summary>
-        </key>
-        <!-- NOISE LIGHTNESS -->
-        <key type="d" name="noise-lightness">
-            <default>0.</default>
-            <summary>Lightness of the noise added to the blur effect</summary>
         </key>
     </schema>
 

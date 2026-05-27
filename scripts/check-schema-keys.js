@@ -9,6 +9,7 @@ const SCHEMA_PATH = path.join(REPO_ROOT, 'extension/schemas/org.gnome.shell.exte
 
 const keysSource = fs.readFileSync(KEYS_PATH, 'utf8');
 const schemaSource = fs.readFileSync(SCHEMA_PATH, 'utf8');
+const GENERAL_ALLOWED_SCHEMA_ONLY_KEYS = new Set(['settings-version']);
 
 const componentSchemaMap = new Map();
 const childRegex = /<child\s+name='([^']+)'\s+schema='([^']+)'/g;
@@ -28,30 +29,83 @@ for (const schemaMatch of schemaSource.matchAll(schemaRegex)) {
     schemaKeyMap.set(schemaId, keys);
 }
 
-const blockRegex = /component:\s*"([^"]+)"[\s\S]*?schemas:\s*\[([\s\S]*?)\]/g;
-const missing = [];
-for (const block of keysSource.matchAll(blockRegex)) {
-    const component = block[1];
-    const schemaId = componentSchemaMap.get(component);
-    if (!schemaId)
-        continue;
+function getContractSource(name) {
+    const exportRegex = new RegExp(`export const ${name} = \\[([\\s\\S]*?)\\];`);
+    return keysSource.match(exportRegex)?.[1] ?? '';
+}
 
-    const schemaKeys = schemaKeyMap.get(schemaId) ?? new Set();
-    const blockBody = block[2];
-    const nameRegex = /name:\s*"([^"]+)"/g;
-    for (const keyMatch of blockBody.matchAll(nameRegex)) {
-        const keyName = keyMatch[1];
-        if (!schemaKeys.has(keyName))
-            missing.push({ component, schemaId, keyName });
+function collectContractKeys(name) {
+    const contractSource = getContractSource(name);
+    const blockRegex = /component:\s*'([^']+)'[\s\S]*?schemas:\s*\[([\s\S]*?)\]/g;
+    const keysBySchema = new Map();
+
+    for (const block of contractSource.matchAll(blockRegex)) {
+        const component = block[1];
+        const schemaId = componentSchemaMap.get(component);
+        if (!schemaId)
+            continue;
+
+        const blockBody = block[2];
+        const nameRegex = /name:\s*'([^']+)'/g;
+        const keys = keysBySchema.get(schemaId) ?? new Set();
+        for (const keyMatch of blockBody.matchAll(nameRegex))
+            keys.add(keyMatch[1]);
+        keysBySchema.set(schemaId, keys);
+    }
+
+    return keysBySchema;
+}
+
+function reportMissing(contractName, contractKeysBySchema) {
+    const missing = [];
+
+    for (const [schemaId, keyNames] of contractKeysBySchema.entries()) {
+        const schemaKeys = schemaKeyMap.get(schemaId) ?? new Set();
+        for (const keyName of keyNames) {
+            if (!schemaKeys.has(keyName))
+                missing.push({ schemaId, keyName });
+        }
+    }
+
+    if (missing.length > 0) {
+        console.error(`Missing schema keys referenced by ${contractName}:`);
+        missing.forEach(item => {
+            console.error(`- schema=${item.schemaId} key=${item.keyName}`);
+        });
+        process.exit(1);
     }
 }
 
-if (missing.length > 0) {
-    console.error('Missing schema keys referenced by KEYS:');
-    missing.forEach(item => {
-        console.error(`- component=${item.component} schema=${item.schemaId} key=${item.keyName}`);
+const activeKeysBySchema = collectContractKeys('KEYS');
+const deprecatedKeysBySchema = collectContractKeys('DEPRECATED_KEYS');
+
+reportMissing('KEYS', activeKeysBySchema);
+reportMissing('DEPRECATED_KEYS', deprecatedKeysBySchema);
+
+const unexpected = [];
+for (const [schemaId, schemaKeys] of schemaKeyMap.entries()) {
+    const expectedKeys = new Set([
+        ...(activeKeysBySchema.get(schemaId) ?? []),
+        ...(deprecatedKeysBySchema.get(schemaId) ?? []),
+    ]);
+
+    if (schemaId === 'org.gnome.shell.extensions.blur-my-shell') {
+        for (const keyName of GENERAL_ALLOWED_SCHEMA_ONLY_KEYS)
+            expectedKeys.add(keyName);
+    }
+
+    for (const keyName of schemaKeys) {
+        if (!expectedKeys.has(keyName))
+            unexpected.push({ schemaId, keyName });
+    }
+}
+
+if (unexpected.length > 0) {
+    console.error('Unexpected schema keys not represented in KEYS or DEPRECATED_KEYS:');
+    unexpected.forEach(item => {
+        console.error(`- schema=${item.schemaId} key=${item.keyName}`);
     });
     process.exit(1);
 }
 
-console.log('Schema key check passed.');
+console.log('Schema key contract check passed.');
