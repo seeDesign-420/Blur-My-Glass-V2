@@ -15,6 +15,7 @@ export const KEYS = [
             { type: Type.I, name: 'sigma' },
             { type: Type.D, name: 'brightness' },
             { type: Type.D, name: 'vibrancy' },
+            { type: Type.D, name: 'opacity' },
             { type: Type.I, name: 'style-components' },
         ]
     },

@@ -101,6 +101,12 @@
     background-color: transparent !important;
 }
 
+.blurred-overview .workspace-background {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    opacity: 0;
+}
+
 
 /*
 * `.overview-components-transparent`

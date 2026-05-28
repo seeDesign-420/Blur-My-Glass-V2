@@ -12,6 +12,7 @@ export const Overview = GObject.registerClass({
         'overview_sigma',
         'overview_brightness',
         'overview_vibrancy',
+        'overview_opacity',
         'overview_style_components',
 
         'appfolder_blur',
@@ -41,6 +42,10 @@ export const Overview = GObject.registerClass({
         );
         this.preferences.overview.settings.bind(
             'vibrancy', this._overview_vibrancy, 'value',
+            Gio.SettingsBindFlags.DEFAULT
+        );
+        this.preferences.overview.settings.bind(
+            'opacity', this._overview_opacity, 'value',
             Gio.SettingsBindFlags.DEFAULT
         );
         this.preferences.overview.settings.bind(

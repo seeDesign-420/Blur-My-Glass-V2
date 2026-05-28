@@ -6,6 +6,7 @@ const path = require('path');
 const REPO_ROOT = path.resolve(__dirname, '..');
 const KEYS_PATH = path.join(REPO_ROOT, 'extension/src/conveniences/keys.js');
 const SCHEMA_PATH = path.join(REPO_ROOT, 'extension/schemas/org.gnome.shell.extensions.blur-my-shell.gschema.xml');
+const EXTENSION_SRC_PATH = path.join(REPO_ROOT, 'extension/src');
 
 const keysSource = fs.readFileSync(KEYS_PATH, 'utf8');
 const schemaSource = fs.readFileSync(SCHEMA_PATH, 'utf8');
@@ -210,6 +211,44 @@ if (staleCoverageEntries.length > 0) {
     staleCoverageEntries.forEach(item => {
         console.error(`- component=${item.component} key=${item.keyName}`);
     });
+    process.exit(1);
+}
+
+function collectSourceFiles(dir) {
+    const files = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory())
+            files.push(...collectSourceFiles(fullPath));
+        else if (entry.isFile() && entry.name.endsWith('.js'))
+            files.push(fullPath);
+    }
+    return files;
+}
+
+const forbiddenPipelineActorAccesses = [];
+const privatePipelineActorAccessRegex = /_bms_pipeline\s*(?:\?\.|\.)\s*(actor|_surface)\b/g;
+for (const sourcePath of collectSourceFiles(EXTENSION_SRC_PATH)) {
+    const source = fs.readFileSync(sourcePath, 'utf8');
+    const lines = source.split(/\r?\n/);
+    lines.forEach((line, index) => {
+        if (privatePipelineActorAccessRegex.test(line)) {
+            forbiddenPipelineActorAccesses.push({
+                file: path.relative(REPO_ROOT, sourcePath),
+                line: index + 1,
+                source: line.trim(),
+            });
+        }
+        privatePipelineActorAccessRegex.lastIndex = 0;
+    });
+}
+
+if (forbiddenPipelineActorAccesses.length > 0) {
+    console.error('Forbidden private DynamicBlurPipeline actor access:');
+    forbiddenPipelineActorAccesses.forEach(item => {
+        console.error(`- ${item.file}:${item.line}: ${item.source}`);
+    });
+    console.error('Use public DynamicBlurPipeline methods such as set_visible() or reapply_settings().');
     process.exit(1);
 }
 

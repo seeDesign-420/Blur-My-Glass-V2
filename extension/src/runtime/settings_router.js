@@ -11,6 +11,18 @@ export class SettingsRouter {
         s.overview.STYLE_COMPONENTS_changed(() => {
             if (s.overview.BLUR) host._overview_blur.update_components_classname();
         });
+        s.overview.SIGMA_changed(() => {
+            if (s.overview.BLUR) host._overview_blur.update_effects();
+        });
+        s.overview.BRIGHTNESS_changed(() => {
+            if (s.overview.BLUR) host._overview_blur.update_effects();
+        });
+        s.overview.VIBRANCY_changed(() => {
+            if (s.overview.BLUR) host._overview_blur.update_effects();
+        });
+        s.overview.OPACITY_changed(() => {
+            if (s.overview.BLUR) host._overview_blur.update_opacity();
+        });
 
         s.overlays.BLUR_changed(() => {
             if (s.overlays.BLUR) host._overlays_blur.enable();

@@ -58,6 +58,11 @@
             <default>0.</default>
             <summary>Vibrancy to use for the blur effect</summary>
         </key>
+        <!-- OPACITY -->
+        <key type="d" name="opacity">
+            <default>1.0</default>
+            <summary>Opacity of the overview blur layer (0 transparent, 1 opaque)</summary>
+        </key>
         <!-- STYLE COMPONENTS -->
         <key type="i" name="style-components">
             <default>1</default>

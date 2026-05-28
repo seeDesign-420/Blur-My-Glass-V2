@@ -1,9 +1,31 @@
 const VIBRANCY_INTENSITY_SCALE = 2;
 
+const SUPPORTED_EFFECT_PARAMS = {
+    native_dynamic_gaussian_blur: new Set([
+        'unscaled_radius',
+        'brightness',
+        'vibrancy',
+        'corner_radius',
+        'refraction_strength',
+        'refraction_radius',
+        'refraction_inner_radius',
+    ]),
+    native_static_gaussian_blur: new Set([
+        'unscaled_radius',
+        'brightness',
+    ]),
+};
+
 export class BlurEffectBinding {
     constructor(settings, effect_overrides = {}) {
         this.settings = settings;
         this.effect_overrides = effect_overrides;
+        this.effect_type = effect_overrides.effect_type ?? 'native_dynamic_gaussian_blur';
+        this._supported_params = new Set(
+            effect_overrides.supported_params ??
+            SUPPORTED_EFFECT_PARAMS[this.effect_type] ??
+            SUPPORTED_EFFECT_PARAMS.native_dynamic_gaussian_blur
+        );
         this.effect = null;
     }
 
@@ -16,6 +38,10 @@ export class BlurEffectBinding {
     unbind() {
         this._disconnectSettings();
         this.effect = null;
+    }
+
+    reapply() {
+        this._applyResolvedValues();
     }
 
     _connectSettings() {
@@ -33,11 +59,13 @@ export class BlurEffectBinding {
                 this.effect.brightness = this._resolveBrightness();
             }
         );
-        this._vibrancy_changed_id = this.settings.settings.connect(
-            'changed::vibrancy', () => this._setVibrancy(this._resolveVibrancy())
-        );
+        if (this._supportsParam('vibrancy')) {
+            this._vibrancy_changed_id = this.settings.settings.connect(
+                'changed::vibrancy', () => this._setVibrancy(this._resolveVibrancy())
+            );
+        }
 
-        if (this.settings.CORNER_RADIUS !== undefined) {
+        if (this.settings.CORNER_RADIUS !== undefined && this._supportsParam('corner_radius')) {
             this._corner_radius_changed_id = this.settings.settings.connect(
                 'changed::corner-radius', () => {
                     if (!this.effect)
@@ -48,7 +76,8 @@ export class BlurEffectBinding {
         }
 
         if (this.settings.REFRACTION_STRENGTH !== undefined
-            && !this.effect_overrides.manage_refraction_manually) {
+            && !this.effect_overrides.manage_refraction_manually
+            && this._supportsParam('refraction_strength')) {
             this._refraction_strength_changed_id = this.settings.settings.connect(
                 'changed::refraction-strength',
                 () => {
@@ -63,7 +92,7 @@ export class BlurEffectBinding {
             );
         }
 
-        if (this.settings.REFRACTION_RADIUS !== undefined) {
+        if (this.settings.REFRACTION_RADIUS !== undefined && this._supportsParam('refraction_radius')) {
             this._refraction_radius_changed_id = this.settings.settings.connect(
                 'changed::refraction-radius',
                 () => {
@@ -78,7 +107,7 @@ export class BlurEffectBinding {
             );
         }
 
-        if (this.settings.REFRACTION_INNER_RADIUS !== undefined) {
+        if (this.settings.REFRACTION_INNER_RADIUS !== undefined && this._supportsParam('refraction_inner_radius')) {
             this._refraction_inner_radius_changed_id = this.settings.settings.connect(
                 'changed::refraction-inner-radius',
                 () => {
@@ -127,16 +156,20 @@ export class BlurEffectBinding {
 
         this.effect.unscaled_radius = resolved.unscaled_radius;
         this.effect.brightness = resolved.brightness;
-        this._setVibrancy(resolved.vibrancy);
-        if (this.settings.CORNER_RADIUS !== undefined)
+        if (this._supportsParam('vibrancy'))
+            this._setVibrancy(resolved.vibrancy);
+        if (this.settings.CORNER_RADIUS !== undefined && this._supportsParam('corner_radius'))
             this.effect.corner_radius = resolved.corner_radius;
-        if (this.settings.REFRACTION_STRENGTH !== undefined
-            || this.settings.REFRACTION_RADIUS !== undefined
-            || this.settings.REFRACTION_INNER_RADIUS !== undefined) {
+        if ((this.settings.REFRACTION_STRENGTH !== undefined && this._supportsParam('refraction_strength'))
+            || (this.settings.REFRACTION_RADIUS !== undefined && this._supportsParam('refraction_radius'))
+            || (this.settings.REFRACTION_INNER_RADIUS !== undefined && this._supportsParam('refraction_inner_radius'))) {
             try {
-                this.effect.refraction_strength = resolved.refraction_strength;
-                this.effect.refraction_radius = resolved.refraction_radius;
-                this.effect.refraction_inner_radius = resolved.refraction_inner_radius;
+                if (this._supportsParam('refraction_strength'))
+                    this.effect.refraction_strength = resolved.refraction_strength;
+                if (this._supportsParam('refraction_radius'))
+                    this.effect.refraction_radius = resolved.refraction_radius;
+                if (this._supportsParam('refraction_inner_radius'))
+                    this.effect.refraction_inner_radius = resolved.refraction_inner_radius;
             } catch (e) {
                 if ((resolved.refraction_strength ?? 0) > 0)
                     console.warn(`[Blur my Shell > effect]       Shell.BlurEffect does not expose liquid-glass refraction: ${e}`);
@@ -148,22 +181,28 @@ export class BlurEffectBinding {
         const params = {
             unscaled_radius: this._resolveUnscaledRadius(),
             brightness: this._resolveBrightness(),
-            vibrancy: this._resolveVibrancy(),
         };
 
-        if (this.settings.CORNER_RADIUS !== undefined)
+        if (this._supportsParam('vibrancy'))
+            params.vibrancy = this._resolveVibrancy();
+
+        if (this.settings.CORNER_RADIUS !== undefined && this._supportsParam('corner_radius'))
             params.corner_radius = this._resolveCornerRadius();
 
-        if (this.settings.REFRACTION_STRENGTH !== undefined)
+        if (this.settings.REFRACTION_STRENGTH !== undefined && this._supportsParam('refraction_strength'))
             params.refraction_strength = this._resolveRefractionStrength();
 
-        if (this.settings.REFRACTION_RADIUS !== undefined)
+        if (this.settings.REFRACTION_RADIUS !== undefined && this._supportsParam('refraction_radius'))
             params.refraction_radius = this._resolveRefractionRadius();
 
-        if (this.settings.REFRACTION_INNER_RADIUS !== undefined)
+        if (this.settings.REFRACTION_INNER_RADIUS !== undefined && this._supportsParam('refraction_inner_radius'))
             params.refraction_inner_radius = this._resolveRefractionInnerRadius();
 
         return params;
+    }
+
+    _supportsParam(name) {
+        return this._supported_params.has(name);
     }
 
     _resolveOverrideValue(name, fallback) {

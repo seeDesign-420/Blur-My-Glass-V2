@@ -6,6 +6,7 @@ export class DynamicBlurPipeline {
         this.effects_manager = effects_manager;
         this.settings = settings;
         this.effect_overrides = effect_overrides;
+        this.effect_type = effect_overrides.effect_type ?? 'native_dynamic_gaussian_blur';
         this.effect = null;
         this._binding = new BlurEffectBinding(settings, effect_overrides);
         this._surface = new BlurBackgroundSurface();
@@ -24,6 +25,22 @@ export class DynamicBlurPipeline {
         return [actor, bg_manager];
     }
 
+    create_wallpaper_background_with_effect(background_group, monitor_index, widget_name) {
+        const [actor, bg_manager] = this._surface.create_wallpaper(
+            background_group,
+            monitor_index,
+            widget_name,
+            () => this.remove_pipeline_from_actor()
+        );
+
+        if (!actor || !bg_manager)
+            return [actor, bg_manager];
+
+        this.attach_effect_to_actor(actor);
+        bg_manager._bms_pipeline = this;
+        return [actor, bg_manager];
+    }
+
     attach_effect_to_actor(actor) {
         if (!actor) {
             this.remove_pipeline_from_actor();
@@ -33,9 +50,7 @@ export class DynamicBlurPipeline {
         this._surface.attach(actor, () => this.remove_pipeline_from_actor());
         this._create_effect();
 
-        if (this._surface.actor)
-            this._surface.actor.add_effect(this.effect);
-        else
+        if (!this.effect || !this._surface.add_effect(this.effect))
             this._warn('could not add effect to actor, actor does not exist anymore');
     }
 
@@ -43,7 +58,13 @@ export class DynamicBlurPipeline {
         const params = this._binding.getResolvedEffectParams();
 
         this.remove_effect();
-        this.effect = this.effects_manager.new_native_dynamic_gaussian_blur_effect(params);
+        const factory = this.effects_manager[`new_${this.effect_type}_effect`];
+        if (!factory) {
+            this._warn(`could not create effect, effect "${this.effect_type}" not found`);
+            return;
+        }
+
+        this.effect = factory.call(this.effects_manager, params);
         this._binding.bind(this.effect);
     }
 
@@ -54,6 +75,19 @@ export class DynamicBlurPipeline {
 
     repaint_effect() {
         this.effect?.queue_repaint();
+    }
+
+    set_visible(visible) {
+        this._surface.set_visible(visible);
+    }
+
+    set_opacity(opacity) {
+        this._surface.set_opacity(opacity);
+    }
+
+    reapply_settings() {
+        this._binding.reapply();
+        this.repaint_effect();
     }
 
     remove_effect() {
