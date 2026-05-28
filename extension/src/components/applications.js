@@ -73,6 +73,9 @@ export const ApplicationsBlur = class ApplicationsBlur {
 
         // compile initial patterns
         this._update_patterns();
+
+        this._pending_size_update_pids = new Set();
+        this._size_update_later_id = 0;
     }
 
     /// Updates the compiled whitelist and blacklist patterns from settings.
@@ -80,6 +83,8 @@ export const ApplicationsBlur = class ApplicationsBlur {
     _update_patterns() {
         const whitelist = this.settings.applications.WHITELIST || [];
         const blacklist = this.settings.applications.BLACKLIST || [];
+        this._whitelist_pattern_cache.clear();
+        this._blacklist_pattern_cache.clear();
 
         this._compiled_whitelist = compilePatterns(whitelist, this._whitelist_pattern_cache);
         this._compiled_blacklist = compilePatterns(blacklist, this._blacklist_pattern_cache);
@@ -221,11 +226,11 @@ export const ApplicationsBlur = class ApplicationsBlur {
         // update the clip, position, and/or size when the window changes
         this.connections.connect(
             meta_window, 'size-changed',
-            _ => this.update_size(pid)
+            _ => this.queue_update_size(pid)
         );
         this.connections.connect(
             meta_window, 'position-changed',
-            _ => this.update_size(pid)
+            _ => this.queue_update_size(pid)
         );
 
         // remove the blur when the window is unmanaged
@@ -235,6 +240,46 @@ export const ApplicationsBlur = class ApplicationsBlur {
         );
 
         this.check_blur(meta_window);
+    }
+
+
+    queue_update_size(pid) {
+        if (!pid)
+            return;
+
+        this._pending_size_update_pids.add(pid);
+        if (this._size_update_later_id)
+            return;
+
+        try {
+            this._size_update_later_id = Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+                this._size_update_later_id = 0;
+                return this._drain_size_update_queue();
+            });
+            return;
+        } catch (e) {
+            this._pending_size_update_pids.clear();
+        }
+    }
+
+    _drain_size_update_queue() {
+        const pending = [...this._pending_size_update_pids];
+        this._pending_size_update_pids.clear();
+        pending.forEach(pid => this.update_size(pid));
+        return false;
+    }
+
+    _clear_size_update_queue() {
+        this._pending_size_update_pids.clear();
+
+        if (this._size_update_later_id) {
+            try {
+                Meta.later_remove(this._size_update_later_id);
+            } catch (e) {
+            }
+            this._size_update_later_id = 0;
+        }
+
     }
 
     /// Updates the size of the blur actor associated to a meta window from its pid.
@@ -379,19 +424,19 @@ export const ApplicationsBlur = class ApplicationsBlur {
             this.enforce_window_visibility_on_overview_for(window_actor);
 
         // update the size
-        this.update_size(pid);
+        this.queue_update_size(pid);
 
         this.connections.connect(
             window_actor,
             'notify::allocation',
-            _ => this.update_size(pid)
+            _ => this.queue_update_size(pid)
         );
         this.connections.connect(
             window_actor,
             'child-added',
             _ => {
                 this._keep_blur_below_window_content(meta_window);
-                this.update_size(pid);
+                this.queue_update_size(pid);
             }
         );
 
@@ -437,7 +482,7 @@ export const ApplicationsBlur = class ApplicationsBlur {
             'notify::visible',
             window_actor => {
                 if (window_actor.visible)
-                    this.update_size(pid);
+                    this.queue_update_size(pid);
                 else
                     meta_window.blur_actor.hide();
             }
@@ -860,6 +905,7 @@ export const ApplicationsBlur = class ApplicationsBlur {
     }
 
     disable() {
+        this._clear_size_update_queue();
         this._log("removing blur from applications...");
 
         this.service?.unexport();

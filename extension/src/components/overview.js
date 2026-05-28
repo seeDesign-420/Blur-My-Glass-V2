@@ -28,6 +28,9 @@ export const OverviewBlur = class OverviewBlur {
         );
         this.enabled = false;
         this.proto_patched = false;
+        this._workspaceVisibilityQueued = false;
+        this._workspaceVisibilityLaterId = 0;
+        this._workspaceSwitchTouchedWindows = new Set();
     }
 
     enable() {
@@ -74,7 +77,13 @@ export const OverviewBlur = class OverviewBlur {
                     let ws_index = w_m.get_active_workspace_index();
                     [ws_index - 1, ws_index + 1].forEach(
                         i => w_m.get_workspace_by_index(i)?.list_windows().forEach(
-                            window => window.get_compositor_private().show()
+                            window => {
+                                const window_actor = window.get_compositor_private();
+                                if (window_actor) {
+                                    window_actor.show();
+                                    outer_this._workspaceSwitchTouchedWindows.add(window);
+                                }
+                            }
                         )
                     );
                 }
@@ -109,30 +118,20 @@ export const OverviewBlur = class OverviewBlur {
                         return new RegExp('^' + escaped.replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
                     });
 
-                    for (let i = 0; i < w_m.get_n_workspaces(); i++) {
-                        if (i != w_m.get_active_workspace_index())
-                            w_m.get_workspace_by_index(i)?.list_windows().forEach(
-                                window => {
-                                    // skip windows on all workspaces (e.g. secondary
-                                    // monitor windows under `workspaces-only-on-primary`);
-                                    // hiding them on any inactive workspace hides them globally
-                                    if (window.is_on_all_workspaces()) return;
+                    outer_this._workspaceSwitchTouchedWindows.forEach(window => {
+                        if (!window)
+                            return;
+                        if (window.is_on_all_workspaces())
+                            return;
+                        if (window.get_window_type() === Meta.WindowType.DESKTOP)
+                            return;
+                        const wm_class = window.get_wm_class();
+                        if (wm_class && blacklist_regexes.some(re => re.test(wm_class)))
+                            return;
 
-                                    // skip desktop-type windows (e.g. DING, Nautilus desktop):
-                                    // they should always remain visible
-                                    if (window.get_window_type() === Meta.WindowType.DESKTOP)
-                                        return;
-
-                                    // skip blacklisted windows:
-                                    // they are not blurred and should always remain visible
-                                    const wm_class = window.get_wm_class();
-                                    if (wm_class && blacklist_regexes.some(re => re.test(wm_class)))
-                                        return;
-
-                                    window.get_compositor_private().hide();
-                                }
-                            );
-                    }
+                        window.get_compositor_private()?.hide();
+                    });
+                    outer_this._workspaceSwitchTouchedWindows.clear();
                 }
 
                 Main.uiGroup.remove_child(outer_this.animation_background_group);
@@ -190,11 +189,12 @@ export const OverviewBlur = class OverviewBlur {
                     Main.layoutManager.overviewGroup.remove_child(this.overview_background_group);
                 Main.layoutManager.overviewGroup.insert_child_at_index(this.overview_background_group, 0);
             }
+            this._queue_workspace_background_visibility_sync();
         });
         this.connections.connect(Main.layoutManager.overviewGroup, ['child-added', 'child-removed'],
-            _ => this._sync_workspace_background_visibility()
+            _ => this._queue_workspace_background_visibility_sync()
         );
-        this._sync_workspace_background_visibility();
+        this._queue_workspace_background_visibility_sync();
         this.update_opacity();
     }
 
@@ -214,6 +214,41 @@ export const OverviewBlur = class OverviewBlur {
         ].forEach(bg_manager => {
             bg_manager._bms_pipeline?.set_opacity?.(opacity);
         });
+    }
+
+
+    _queue_workspace_background_visibility_sync() {
+        if (this._workspaceVisibilityQueued)
+            return;
+
+        this._workspaceVisibilityQueued = true;
+        try {
+            this._workspaceVisibilityLaterId = Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+                this._workspaceVisibilityLaterId = 0;
+                return this._run_workspace_background_visibility_sync();
+            });
+            return;
+        } catch (e) {
+            this._workspaceVisibilityQueued = false;
+        }
+    }
+
+    _run_workspace_background_visibility_sync() {
+        this._workspaceVisibilityQueued = false;
+        this._sync_workspace_background_visibility();
+        return false;
+    }
+
+    _clear_workspace_background_visibility_sync() {
+        this._workspaceVisibilityQueued = false;
+        if (this._workspaceVisibilityLaterId) {
+            try {
+                Meta.later_remove(this._workspaceVisibilityLaterId);
+            } catch (e) {
+            }
+            this._workspaceVisibilityLaterId = 0;
+        }
+
     }
 
     _sync_workspace_background_visibility() {
@@ -270,6 +305,7 @@ export const OverviewBlur = class OverviewBlur {
     }
 
     disable() {
+        this._clear_workspace_background_visibility_sync();
         this._log("removing blur from overview");
 
         this._set_workspace_background_visibility(true);
