@@ -40,17 +40,19 @@ export class BlurBackgroundSurface {
         const monitor = Main.layoutManager.monitors[monitor_index];
         if (!monitor)
             return [null, null];
+        const width = Math.max(1, monitor.width ?? 0);
+        const height = Math.max(1, monitor.height ?? 0);
 
         const actor = new St.Widget({
             name: widget_name,
             x: monitor.x,
             y: monitor.y,
             z_position: 1,
-            width: monitor.width,
-            height: monitor.height,
+            width,
+            height,
             clip_to_allocation: true,
         });
-        actor.set_clip(0, 0, monitor.width, monitor.height);
+        actor.set_clip(0, 0, width, height);
 
         this.attach(actor, onDestroy);
 

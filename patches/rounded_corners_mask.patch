@@ -19,8 +19,8 @@ index d362b0a20..2d9fcb310 100644
 +"  vec2 q  = abs(p - 0.5 * u_size) - (0.5 * u_size - radius);              \n"
 +"  float dist = min(max(q.x, q.y), 0.0)                                    \n"
 +"             + length(max(q, vec2(0.0))) - radius;                        \n"
-+"  float aa = max(fwidth(dist), 1.25);                                      \n"
-+"  float m = smoothstep(aa, -aa, dist);                                    \n"
++"  float aa = min(max(fwidth(dist), 1.25), 0.5 * max(min(u_size.x, u_size.y), 1.0));\n"
++"  float m = 1.0 - smoothstep(-aa, aa, dist);                              \n"
 +"  cogl_color_out.rgb *= m;                                                \n"
 +"  cogl_color_out.a   *= m;                                                \n";
 +
@@ -106,6 +106,17 @@ index d362b0a20..2d9fcb310 100644
  static void
  setup_projection_matrix (CoglFramebuffer *framebuffer,
                           float            width,
+@@ -205,6 +268,6 @@ update_fbo (FramebufferData *data,
+   g_clear_object (&data->framebuffer);
+-
+-  float new_width = floorf (width / downscale_factor);
+-  float new_height = floorf (height / downscale_factor);
+-
++
++  float new_width = MAX (floorf (width / downscale_factor), 1.f);
++  float new_height = MAX (floorf (height / downscale_factor), 1.f);
++
+   data->texture = cogl_texture_2d_new_with_size (ctx, new_width, new_height);
 @@ -279,6 +342,23 @@ update_background_fbo (ShellBlurEffect *self,
    return update_fbo (&self->background_fb, width, height, 1.0);
  }
@@ -138,8 +149,12 @@ index d362b0a20..2d9fcb310 100644
  
    /* we keep a back pointer here, to avoid going through the ActorMeta */
    self->actor = clutter_actor_meta_get_actor (meta);
-@@ -396,8 +477,9 @@ add_blurred_pipeline (ShellBlurEffect  *self,
+@@ -396,8 +477,13 @@ add_blurred_pipeline (ShellBlurEffect  *self,
    clutter_actor_get_size (self->actor, &width, &height);
++  width = MAX (width, 1.f);
++  height = MAX (height, 1.f);
++  if (width <= 0.f || height <= 0.f || !self->mask_fb.pipeline)
++    return;
  
    update_brightness (self, paint_opacity);
 +  update_mask_uniforms (self, width, height);
@@ -149,7 +164,7 @@ index d362b0a20..2d9fcb310 100644
    clutter_paint_node_set_static_name (pipeline_node, "ShellBlurEffect (final)");
    clutter_paint_node_add_child (node, pipeline_node);
  
-@@ -416,16 +498,28 @@ create_blur_nodes (ShellBlurEffect  *self,
+@@ -416,16 +498,35 @@ create_blur_nodes (ShellBlurEffect  *self,
  {
    g_autoptr (ClutterPaintNode) brightness_node = NULL;
    g_autoptr (ClutterPaintNode) blur_node = NULL;
@@ -158,6 +173,13 @@ index d362b0a20..2d9fcb310 100644
    float height;
  
    clutter_actor_get_size (self->actor, &width, &height);
++  width = MAX (width, 1.f);
++  height = MAX (height, 1.f);
++  if (width <= 0.f || height <= 0.f ||
++      !self->mask_fb.framebuffer ||
++      !self->brightness_fb.framebuffer ||
++      !self->brightness_fb.texture)
++    return NULL;
  
 +  update_mask_uniforms (self, width, height);
 +  mask_node = clutter_layer_node_new_to_framebuffer (self->mask_fb.framebuffer,
@@ -179,16 +201,51 @@ index d362b0a20..2d9fcb310 100644
    clutter_paint_node_add_rectangle (brightness_node,
                                      &(ClutterActorBox) {
                                        0.f, 0.f,
-@@ -511,7 +605,8 @@ update_framebuffers (ShellBlurEffect     *self,
+@@ -509,9 +603,13 @@ update_framebuffers (ShellBlurEffect     *self,
+   clutter_actor_box_get_size (source_actor_box, &width, &height);
+-
++
++  if (width <= 0.f || height <= 0.f)
++    return FALSE;
++
    downscale_factor = calculate_downscale_factor (width, height, self->radius);
- 
+-
++
    updated = update_actor_fbo (self, width, height, downscale_factor) &&
 -            update_brightness_fbo (self, width, height, downscale_factor);
 +            update_brightness_fbo (self, width, height, downscale_factor) &&
 +            update_mask_fbo (self, width, height, downscale_factor);
- 
+-
++
    if (self->mode == SHELL_BLUR_MODE_BACKGROUND)
      updated = updated && update_background_fbo (self, width, height);
+@@ -625,11 +625,17 @@ shell_blur_effect_paint_node (ClutterEffect           *effect,
+ {
+   ShellBlurEffect *self = SHELL_BLUR_EFFECT (effect);
+   uint8_t paint_opacity;
++  float actor_width = 0.f;
++  float actor_height = 0.f;
+ 
+   g_assert (self->actor != NULL);
+ 
+   if (self->radius > 0)
+     {
++      clutter_actor_get_size (self->actor, &actor_width, &actor_height);
++      if (actor_width <= 0.f || actor_height <= 0.f)
++        goto fail;
++
+       g_autoptr (ClutterPaintNode) blur_node = NULL;
+ 
+       switch (self->mode)
+@@ -660,6 +666,8 @@ shell_blur_effect_paint_node (ClutterEffect           *effect,
+             goto fail;
+ 
+           blur_node = create_blur_nodes (self, node, paint_opacity);
++          if (!blur_node)
++            goto fail;
+ 
+           switch (self->mode)
+             {
 @@ -709,10 +804,12 @@ shell_blur_effect_finalize (GObject *object)
    clear_framebuffer_data (&self->actor_fb);
    clear_framebuffer_data (&self->background_fb);
@@ -255,7 +312,7 @@ index d362b0a20..2d9fcb310 100644
  }
  
  ShellBlurEffect *
-@@ -914,3 +1030,28 @@ shell_blur_effect_set_mode (ShellBlurEffect *self,
+@@ -914,3 +1030,29 @@ shell_blur_effect_set_mode (ShellBlurEffect *self,
  
    g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_MODE]);
  }
@@ -273,10 +330,11 @@ index d362b0a20..2d9fcb310 100644
 +{
 +  g_return_if_fail (SHELL_IS_BLUR_EFFECT (self));
 +
++  corner_radius = MAX (0.f, corner_radius);
 +  if (self->corner_radius == corner_radius)
 +    return;
 +
-+  self->corner_radius = MAX (0.f, corner_radius);
++  self->corner_radius = corner_radius;
 +  self->cache_flags &= ~BLUR_APPLIED;
 +
 +  if (self->actor)

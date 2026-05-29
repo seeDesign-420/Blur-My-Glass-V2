@@ -16,6 +16,17 @@ const SUPPORTED_EFFECT_PARAMS = {
     ]),
 };
 
+export function setEffectCornerRadius(effect, cornerRadius) {
+    if (!effect)
+        return;
+
+    const resolvedRadius = Math.max(0, cornerRadius ?? 0);
+    if ('unscaled_corner_radius' in effect)
+        effect.unscaled_corner_radius = resolvedRadius;
+    else
+        effect.corner_radius = resolvedRadius;
+}
+
 export class BlurEffectBinding {
     constructor(settings, effect_overrides = {}) {
         this.settings = settings;
@@ -70,7 +81,7 @@ export class BlurEffectBinding {
                 'changed::corner-radius', () => {
                     if (!this.effect)
                         return;
-                    this.effect.corner_radius = this._resolveCornerRadius();
+                    setEffectCornerRadius(this.effect, this._resolveCornerRadius());
                 }
             );
         }
@@ -159,7 +170,7 @@ export class BlurEffectBinding {
         if (this._supportsParam('vibrancy'))
             this._setVibrancy(resolved.vibrancy);
         if (this.settings.CORNER_RADIUS !== undefined && this._supportsParam('corner_radius'))
-            this.effect.corner_radius = resolved.corner_radius;
+            setEffectCornerRadius(this.effect, resolved.corner_radius);
         if ((this.settings.REFRACTION_STRENGTH !== undefined && this._supportsParam('refraction_strength'))
             || (this.settings.REFRACTION_RADIUS !== undefined && this._supportsParam('refraction_radius'))
             || (this.settings.REFRACTION_INNER_RADIUS !== undefined && this._supportsParam('refraction_inner_radius'))) {

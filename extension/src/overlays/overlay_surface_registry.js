@@ -190,6 +190,32 @@ export class OverlaySurfaceRegistry {
         this._quickSettingsControlLayer?.sync();
     }
 
+    hideAllSurfaces(reason = 'suspended') {
+        for (const controller of this._popupControllers.values()) {
+            try {
+                controller.hide();
+            } catch {
+                // Ignore hide races while shell is mutating actor trees.
+            }
+        }
+
+        for (const controller of this._actorControllers.values()) {
+            try {
+                controller.hide();
+            } catch {
+                // Ignore hide races while shell is mutating actor trees.
+            }
+        }
+
+        try {
+            this._quickSettingsControlLayer?.suspend();
+        } catch {
+            // Ignore quick settings suspend races.
+        }
+
+        this.runtime._perfCount(`registry.hide_all_surfaces.${reason}`);
+    }
+
     isTrackedMenu(menu) {
         if (this._quickSettingsControlLayer?.menu === menu)
             return true;

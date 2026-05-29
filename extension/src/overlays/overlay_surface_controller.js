@@ -14,6 +14,7 @@ import {
     isPositiveSize,
     getTransformPosition,
     getTransformSize,
+    snapRectOutwards,
     stageRectToActorSpace,
 } from './geometry.js';
 
@@ -249,6 +250,12 @@ export class OverlaySurfaceController {
             `bms-overlay-${this.id}-blurred-widget`
         );
         if (this.background_actor) {
+            // Prevent transient 0x0 blur paints before first geometry sync.
+            this.background_group.width = 1;
+            this.background_group.height = 1;
+            this.background_actor.width = 1;
+            this.background_actor.height = 1;
+            this.background_actor.set_clip(0, 0, 1, 1);
             this.runtime._perfCount('blur_surfaces.created');
             this.runtime._perfCount('blur_effects.created');
         }
@@ -302,12 +309,11 @@ export class OverlaySurfaceController {
             stageHeight = this.surfaceActor.height ?? this.surfaceActor.get_height?.() ?? 1;
         }
 
-        const targetRect = stageRectToActorSpace(parent, stageX, stageY, stageWidth, stageHeight);
-        const localX = Math.round(targetRect.x);
-        const localY = Math.round(targetRect.y);
-        const localWidth = Math.max(1, Math.round(targetRect.width));
-        const localHeight = Math.max(1, Math.round(targetRect.height));
-        const nextRect = { x: localX, y: localY, width: localWidth, height: localHeight };
+        const nextRect = snapRectOutwards(stageRectToActorSpace(parent, stageX, stageY, stageWidth, stageHeight));
+        if (!nextRect)
+            return;
+
+        const { x: localX, y: localY, width: localWidth, height: localHeight } = nextRect;
 
         if (this._lastRect &&
             this._lastRect.x === nextRect.x &&

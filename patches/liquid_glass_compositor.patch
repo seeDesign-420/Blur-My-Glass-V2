@@ -1,6 +1,6 @@
 --- a/src/shell-blur-effect.c
 +++ b/src/shell-blur-effect.c
-@@ -45,10 +45,117 @@
+@@ -45,10 +45,129 @@
   */
  
  static const gchar *brightness_glsl_declarations =
@@ -51,7 +51,13 @@
 +" * Uses bounds-safe multi-sample texture2D lookups for broad compatibility.*/\n"
 +"                                                                          \n"
 +"r_strength = clamp(refraction_strength, 0.0, 2.0);                       \n"
++"r_transition = 0.0;                                                       \n"
++"r_border = 0.0;                                                           \n"
++"r_gradient = 0.0;                                                         \n"
 +"                                                                          \n"
++"if (r_strength < 0.0001) {                                               \n"
++"  cogl_texel = texture2D(cogl_sampler, cogl_tex_coord.st);               \n"
++"} else {                                                                 \n"
 +"/* Actor clips can be smaller than the blur actor (static window blur). */\n"
 +"vec2 r_actor_size = max(u_refract_size, vec2(1.0));                      \n"
 +"vec2 r_bounds = max(u_refract_bounds, vec2(1.0));                        \n"
@@ -63,36 +69,39 @@
 +"                                                                          \n"
 +"/* Rounded-rect box SDF (Iquilez) with per-corner radii */                \n"
 +"vec2 r_wh = vec2(0.5, 0.5) * r_ar;                                       \n"
-+"float r_cr = u_refract_radius / r_bounds.y;                               \n"
++"float r_radius_px = clamp(u_refract_radius, 0.0, 0.5 * min(r_bounds.x, r_bounds.y));\n"
++"float r_cr = r_radius_px / r_bounds.y;                                    \n"
 +"vec4 r_corners = vec4(r_cr);                                              \n"
 +"r_corners.xy = (r_pos.x > 0.0) ? r_corners.xy : r_corners.zw;            \n"
 +"r_corners.x  = (r_pos.y > 0.0) ? r_corners.x  : r_corners.y;            \n"
 +"vec2 r_q = abs(r_pos) - r_wh + r_corners.x;                              \n"
 +"float r_sd = min(max(r_q.x, r_q.y), 0.0)                                 \n"
 +"           + length(max(r_q, vec2(0.0))) - r_corners.x;                  \n"
-+"float r_inner_cr = u_refract_inner_radius / r_bounds.y;                   \n"
++"float r_inner_radius_px = clamp(u_refract_inner_radius, 0.0, 0.5 * min(r_bounds.x, r_bounds.y));\n"
++"float r_inner_cr = r_inner_radius_px / r_bounds.y;                        \n"
 +"vec2 r_inner_q = abs(r_pos) - r_wh + r_inner_cr;                          \n"
 +"float r_inner_sd = min(max(r_inner_q.x, r_inner_q.y), 0.0)                \n"
 +"                 + length(max(r_inner_q, vec2(0.0))) - r_inner_cr;        \n"
 +"                                                                          \n"
 +"/* Anti-aliased transition using screen-space derivatives */              \n"
 +"float r_aa = max(fwidth(r_sd), 0.75 / r_bounds.y);                        \n"
-+"r_transition = smoothstep(r_aa, -r_aa, r_sd);                             \n"
++"r_transition = 1.0 - smoothstep(-r_aa, r_aa, r_sd);                       \n"
 +"                                                                          \n"
 +"/* Border highlight: 1 pixel wide stroke */                               \n"
 +"float r_bw = 0.5 / r_bounds.y;                                            \n"
-+"r_border = smoothstep(r_aa, 0.0, abs(r_sd + r_bw) - r_bw);                \n"
++"r_border = 1.0 - smoothstep(0.0, r_aa, abs(r_sd + r_bw) - r_bw);          \n"
 +"                                                                          \n"
 +"/* Gradient ring for top-light gloss (4px band) */                        \n"
 +"float r_gw = 2.0 / r_bounds.y;                                            \n"
-+"float r_grad_ring = smoothstep(2.0*r_aa, -2.0*r_aa, r_sd + r_gw)          \n"
-+"                  - smoothstep(1.0*r_aa, -1.0*r_aa, r_sd - r_gw);        \n"
++"float r_outer_gloss = 1.0 - smoothstep(-2.0*r_aa, 2.0*r_aa, r_sd + r_gw);\n"
++"float r_inner_gloss = 1.0 - smoothstep(-1.0*r_aa, 1.0*r_aa, r_sd - r_gw);\n"
++"float r_grad_ring = max(0.0, r_outer_gloss - r_inner_gloss);             \n"
 +"float r_vertical = 1.0 - clamp(r_local_uv.y, 0.0, 1.0);                  \n"
 +"r_gradient = r_grad_ring * (0.25 + 0.75 * r_vertical);                   \n"
 +"                                                                          \n"
 +"/* Zoom-lens refraction: sin(pow(dist, 0.25) * pi/2) warp */             \n"
 +"vec2 r_final_uv = cogl_tex_coord.st;                                      \n"
-+"if (r_strength > 0.0 && r_transition > 0.0) {                            \n"
++"if (r_transition > 0.0) {                                                \n"
 +"  float r_dist = clamp(-r_inner_sd / r_strength, 0.0, 1.0);              \n"
 +"  float r_warp = sin(pow(r_dist, 0.25) * 1.5707963);                     \n"
 +"  vec2 r_lens_local = r_m2 * r_warp + 0.5;                               \n"
@@ -101,26 +110,29 @@
 +"}                                                                         \n"
 +"                                                                          \n"
 +"/* Bounds-safe RGSS sampling to soften aliasing without textureGrad. */   \n"
-+"vec2 r_margin = vec2(1.25) / r_actor_size;                                \n"
-+"r_final_uv = clamp(r_final_uv, r_margin, vec2(1.0) - r_margin);           \n"
++"vec2 r_margin = min(vec2(1.25) / r_actor_size, vec2(0.45));               \n"
++"vec2 r_min_uv = r_margin;                                                \n"
++"vec2 r_max_uv = max(r_min_uv, vec2(1.0) - r_margin);                     \n"
++"r_final_uv = clamp(r_final_uv, r_min_uv, r_max_uv);                      \n"
 +"vec2 r_texel = vec2(0.75) / r_actor_size;                                  \n"
 +"vec2 r_off1 = vec2( 0.375, -0.125) * r_texel;                             \n"
 +"vec2 r_off2 = vec2( 0.125,  0.375) * r_texel;                             \n"
 +"vec2 r_off3 = vec2(-0.375,  0.125) * r_texel;                             \n"
 +"vec2 r_off4 = vec2(-0.125, -0.375) * r_texel;                             \n"
-+"vec2 r_uv1 = clamp(r_final_uv + r_off1, r_margin, vec2(1.0) - r_margin);  \n"
-+"vec2 r_uv2 = clamp(r_final_uv + r_off2, r_margin, vec2(1.0) - r_margin);  \n"
-+"vec2 r_uv3 = clamp(r_final_uv + r_off3, r_margin, vec2(1.0) - r_margin);  \n"
-+"vec2 r_uv4 = clamp(r_final_uv + r_off4, r_margin, vec2(1.0) - r_margin);  \n"
++"vec2 r_uv1 = clamp(r_final_uv + r_off1, r_min_uv, r_max_uv);             \n"
++"vec2 r_uv2 = clamp(r_final_uv + r_off2, r_min_uv, r_max_uv);             \n"
++"vec2 r_uv3 = clamp(r_final_uv + r_off3, r_min_uv, r_max_uv);             \n"
++"vec2 r_uv4 = clamp(r_final_uv + r_off4, r_min_uv, r_max_uv);             \n"
 +"cogl_texel = 0.25 * (                                                     \n"
 +"  texture2D(cogl_sampler, r_uv1) +                                        \n"
 +"  texture2D(cogl_sampler, r_uv2) +                                        \n"
 +"  texture2D(cogl_sampler, r_uv3) +                                        \n"
-+"  texture2D(cogl_sampler, r_uv4));                                        \n";
++"  texture2D(cogl_sampler, r_uv4));                                        \n"
++"}                                                                         \n";
  
  static const gchar *mask_glsl_declarations =
  "uniform float u_corner_radius;                                            \n"
-@@ -98,10 +205,17 @@
+@@ -98,10 +210,17 @@
    FramebufferData background_fb;
    FramebufferData brightness_fb;
    int brightness_uniform;
@@ -138,7 +150,7 @@
  
    ShellBlurMode mode;
    float downscale_factor;
-@@ -109,6 +223,10 @@
+@@ -109,6 +228,10 @@
    int radius;
  
    float corner_radius;
@@ -149,7 +161,7 @@
  };
  
  G_DEFINE_TYPE (ShellBlurEffect, shell_blur_effect, CLUTTER_TYPE_EFFECT)
-@@ -119,6 +237,10 @@
+@@ -119,6 +242,10 @@
    PROP_BRIGHTNESS,
    PROP_MODE,
    PROP_CORNER_RADIUS,
@@ -160,7 +172,7 @@
    N_PROPS
  };
  
-@@ -169,6 +291,13 @@
+@@ -169,6 +296,13 @@
                                    brightness_glsl);
        cogl_pipeline_add_snippet (brightness_pipeline, snippet);
        g_object_unref (snippet);
@@ -174,7 +186,7 @@
      }
  
    return cogl_pipeline_copy (brightness_pipeline);
-@@ -210,6 +339,62 @@
+@@ -210,6 +352,71 @@
                                      self->brightness_uniform,
                                      self->brightness);
      }
@@ -213,13 +225,22 @@
 +      refract_bounds[1] = refract_size[1];
 +      if (clutter_actor_has_clip (self->actor))
 +        {
++          float clip_x, clip_y;
++          float clip_width, clip_height;
++          float clip_x2, clip_y2;
++
 +          clutter_actor_get_clip (self->actor,
-+                                  &refract_origin[0],
-+                                  &refract_origin[1],
-+                                  &refract_bounds[0],
-+                                  &refract_bounds[1]);
-+          refract_bounds[0] = MAX (refract_bounds[0], 1.f);
-+          refract_bounds[1] = MAX (refract_bounds[1], 1.f);
++                                  &clip_x,
++                                  &clip_y,
++                                  &clip_width,
++                                  &clip_height);
++
++          clip_x2 = CLAMP (clip_x + clip_width, 0.f, refract_size[0]);
++          clip_y2 = CLAMP (clip_y + clip_height, 0.f, refract_size[1]);
++          refract_origin[0] = CLAMP (clip_x, 0.f, refract_size[0]);
++          refract_origin[1] = CLAMP (clip_y, 0.f, refract_size[1]);
++          refract_bounds[0] = MAX (clip_x2 - refract_origin[0], 1.f);
++          refract_bounds[1] = MAX (clip_y2 - refract_origin[1], 1.f);
 +        }
 +
 +      cogl_pipeline_set_uniform_float (self->brightness_fb.pipeline,
@@ -237,7 +258,7 @@
  }
  
  static void
-@@ -840,6 +1025,22 @@
+@@ -840,6 +1030,22 @@
        g_value_set_float (value, self->corner_radius);
        break;
  
@@ -260,7 +281,7 @@
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
      }
-@@ -871,6 +1072,22 @@
+@@ -871,6 +1077,22 @@
        shell_blur_effect_set_corner_radius (self, g_value_get_float (value));
        break;
  
@@ -283,7 +304,7 @@
      default:
        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
      }
-@@ -912,6 +1129,26 @@
+@@ -912,6 +1134,26 @@
                          0.f, G_MAXFLOAT, 0.f,
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
  
@@ -310,7 +331,7 @@
    g_object_class_install_properties (object_class, N_PROPS, properties);
  }
  
-@@ -922,6 +1159,10 @@
+@@ -922,6 +1164,10 @@
    self->radius = 0;
    self->brightness = 1.f;
    self->corner_radius = 0.f;
@@ -321,7 +342,7 @@
  
    self->actor_fb.pipeline = create_base_pipeline ();
    self->background_fb.pipeline = create_base_pipeline ();
-@@ -929,6 +1170,20 @@
+@@ -929,6 +1175,20 @@
    self->mask_fb.pipeline = create_mask_pipeline ();
    self->brightness_uniform =
      cogl_pipeline_get_uniform_location (self->brightness_fb.pipeline, "brightness");
@@ -342,7 +363,7 @@
    self->corner_radius_uniform =
      cogl_pipeline_get_uniform_location (self->mask_fb.pipeline, "u_corner_radius");
    self->mask_size_uniform =
-@@ -1055,3 +1310,111 @@
+@@ -1055,3 +1315,111 @@
  
    g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_CORNER_RADIUS]);
  }

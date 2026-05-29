@@ -3,6 +3,7 @@ import Meta from 'gi://Meta';
 import { DynamicBlurPipeline } from '../blur/dynamic_blur_pipeline.js';
 import { DisposableStore } from '../runtime/disposable_store.js';
 import { BlurGeometryTracker } from '../runtime/blur_geometry_tracker.js';
+import { snapRectOutwards, stageRectToActorSpace } from '../overlays/geometry.js';
 
 export class DhruvaDockSurfaceController {
     constructor(effects_manager, settings) {
@@ -27,20 +28,27 @@ export class DhruvaDockSurfaceController {
         );
         parent.insert_child_below(background_group, container);
 
+        let lastRect = null;
         const sync_geometry = () => {
             try {
                 let [abs_x, abs_y] = bgActor.get_transformed_position();
-                let [ok, local_x, local_y] = parent.transform_stage_point(abs_x, abs_y);
-                if (!ok)
-                    return;
                 let [tw, th] = bgActor.get_transformed_size();
                 if (tw <= 0 || th <= 0)
                     return;
 
-                const nextX = Math.round(local_x);
-                const nextY = Math.round(local_y);
-                const nextW = Math.round(tw);
-                const nextH = Math.round(th);
+                const nextRect = snapRectOutwards(stageRectToActorSpace(parent, abs_x, abs_y, tw, th));
+                if (!nextRect)
+                    return;
+
+                if (lastRect &&
+                    lastRect.x === nextRect.x &&
+                    lastRect.y === nextRect.y &&
+                    lastRect.width === nextRect.width &&
+                    lastRect.height === nextRect.height)
+                    return;
+
+                lastRect = nextRect;
+                const { x: nextX, y: nextY, width: nextW, height: nextH } = nextRect;
 
                 if (background_group.x !== nextX || background_group.y !== nextY)
                     background_group.set_position(nextX, nextY);

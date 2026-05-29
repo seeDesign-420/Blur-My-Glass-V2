@@ -221,6 +221,16 @@ export class QuickSettingsControlBlurLayer {
         }
     }
 
+    suspend() {
+        if (this.destroyed)
+            return;
+
+        this._openSettled = false;
+        this._cancelOpenRefresh();
+        this._cancelCloseHide();
+        this._destroySurfaces();
+    }
+
     _cancelOpenRefresh() {
         if (!this._open_source_id)
             return;

@@ -30,6 +30,7 @@ export const NativeDynamicBlurEffect = utils.IS_IN_PREFERENCES ?
             );
 
             utils.setup_params(this, params);
+            this.unscaled_corner_radius = corner_radius ?? DEFAULT_PARAMS.corner_radius;
             try {
                 this.refraction_strength = refraction_strength ?? 0;
                 this.refraction_radius = refraction_radius ?? 24;
@@ -42,6 +43,13 @@ export const NativeDynamicBlurEffect = utils.IS_IN_PREFERENCES ?
 
         static get default_params() {
             return DEFAULT_PARAMS;
+        }
+
+        set(params) {
+            const { corner_radius, ...otherParams } = params;
+            super.set(otherParams);
+            if (corner_radius !== undefined)
+                this.unscaled_corner_radius = corner_radius;
         }
 
         get unscaled_radius() {
@@ -58,8 +66,8 @@ export const NativeDynamicBlurEffect = utils.IS_IN_PREFERENCES ?
         }
 
         set unscaled_corner_radius(value) {
-            this._unscaled_corner_radius = value;
-            this.corner_radius = value * this._theme_context.scale_factor;
+            this._unscaled_corner_radius = Math.max(0, value ?? 0);
+            this.corner_radius = this._unscaled_corner_radius * this._theme_context.scale_factor;
         }
 
     });

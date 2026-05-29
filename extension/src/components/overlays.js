@@ -119,6 +119,7 @@ export const OverlaysBlur = class OverlaysBlur {
         const nextSuspendUntil = now + durationUsec;
         if (nextSuspendUntil > this._suspendedUntil)
             this._suspendedUntil = nextSuspendUntil;
+        this._registry?.hideAllSurfaces(reason || 'suspended');
         this._scheduleSuspensionRefresh();
 
         if (this.settings.DEBUG)

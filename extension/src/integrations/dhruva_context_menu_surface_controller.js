@@ -4,6 +4,7 @@ import Clutter from 'gi://Clutter';
 import { DynamicBlurPipeline } from '../blur/dynamic_blur_pipeline.js';
 import { DisposableStore } from '../runtime/disposable_store.js';
 import { BlurGeometryTracker } from '../runtime/blur_geometry_tracker.js';
+import { snapRectOutwards } from '../overlays/geometry.js';
 
 export class DhruvaContextMenuSurfaceController {
     constructor(effects_manager, settings, resolver) {
@@ -25,6 +26,7 @@ export class DhruvaContextMenuSurfaceController {
             blurWidget: null,
             bgManager: null,
             tracker: null,
+            lastRect: null,
             disposables: new DisposableStore(),
         };
     }
@@ -62,12 +64,30 @@ export class DhruvaContextMenuSurfaceController {
             if (w <= 0 || h <= 0)
                 return;
 
-            const nextX = currentAlloc.get_x();
-            const nextY = currentAlloc.get_y();
+            const nextRect = snapRectOutwards({
+                x: currentAlloc.get_x(),
+                y: currentAlloc.get_y(),
+                width: w,
+                height: h,
+            });
+            if (!nextRect)
+                return;
+
+            if (state.lastRect &&
+                state.lastRect.x === nextRect.x &&
+                state.lastRect.y === nextRect.y &&
+                state.lastRect.width === nextRect.width &&
+                state.lastRect.height === nextRect.height)
+                return;
+
+            state.lastRect = nextRect;
+            const { x: nextX, y: nextY, width: nextW, height: nextH } = nextRect;
             if (blurWidget.x !== nextX || blurWidget.y !== nextY)
                 blurWidget.set_position(nextX, nextY);
-            if (blurWidget.width !== w || blurWidget.height !== h)
-                blurWidget.set_size(w, h);
+            if (blurWidget.width !== nextW || blurWidget.height !== nextH)
+                blurWidget.set_size(nextW, nextH);
+            blurWidget.clip_to_allocation = true;
+            blurWidget.set_clip(0, 0, nextW, nextH);
             bgManager?._bms_pipeline?.effect?.queue_repaint?.();
         };
 

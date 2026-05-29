@@ -6,6 +6,7 @@ import {
     getTransformPosition,
     getTransformSize,
     hasPositiveTransformedSize,
+    snapRectOutwards,
     stageRectToActorSpace,
 } from './geometry.js';
 
@@ -179,12 +180,11 @@ export class QuickSettingsControlBlurSurface {
             stageHeight = targetActor.height ?? targetActor.get_height?.() ?? 1;
         }
 
-        const targetRect = stageRectToActorSpace(parent, stageX, stageY, stageWidth, stageHeight);
-        const localX = Math.round(targetRect.x);
-        const localY = Math.round(targetRect.y);
-        const localWidth = Math.max(1, Math.round(targetRect.width));
-        const localHeight = Math.max(1, Math.round(targetRect.height));
-        const nextRect = { x: localX, y: localY, width: localWidth, height: localHeight };
+        const nextRect = snapRectOutwards(stageRectToActorSpace(parent, stageX, stageY, stageWidth, stageHeight));
+        if (!nextRect)
+            return;
+
+        const { x: localX, y: localY, width: localWidth, height: localHeight } = nextRect;
         const nextMaskState = this._resolveMaskState(localWidth, localHeight);
 
         if (this._lastRect &&
@@ -210,11 +210,7 @@ export class QuickSettingsControlBlurSurface {
             this._surfaceActor.set_clip(0, 0, localWidth, localHeight);
 
             const pipeline = this._bg_manager?._bms_pipeline;
-            if (pipeline) {
-                pipeline.effect_overrides.corner_radius = nextMaskState.radius;
-                if (pipeline.effect)
-                    pipeline.effect.unscaled_corner_radius = nextMaskState.radius;
-            }
+            pipeline?.set_corner_radius?.(nextMaskState.radius);
 
             if (this._maskEffect)
                 this._maskEffect.set(nextMaskState);

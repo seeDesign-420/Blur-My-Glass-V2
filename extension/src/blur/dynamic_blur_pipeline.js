@@ -1,4 +1,4 @@
-import { BlurEffectBinding } from './blur_effect_binding.js';
+import { BlurEffectBinding, setEffectCornerRadius } from './blur_effect_binding.js';
 import { BlurBackgroundSurface } from './blur_background_surface.js';
 
 export class DynamicBlurPipeline {
@@ -83,6 +83,12 @@ export class DynamicBlurPipeline {
 
     set_opacity(opacity) {
         this._surface.set_opacity(opacity);
+    }
+
+    set_corner_radius(cornerRadius) {
+        const resolvedRadius = Math.max(0, cornerRadius ?? 0);
+        this.effect_overrides.corner_radius = resolvedRadius;
+        setEffectCornerRadius(this.effect, resolvedRadius);
     }
 
     reapply_settings() {

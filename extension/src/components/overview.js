@@ -28,6 +28,7 @@ export const OverviewBlur = class OverviewBlur {
         );
         this.enabled = false;
         this.proto_patched = false;
+        this._transitionSuspended = false;
     }
 
     enable() {
@@ -46,6 +47,14 @@ export const OverviewBlur = class OverviewBlur {
         this.connections.connect(Main.layoutManager, 'monitors-changed',
             _ => this.update_backgrounds()
         );
+        this.connections.connect(Main.overview, 'showing',
+            () => this._setTransitionSuspended(true));
+        this.connections.connect(Main.overview, 'shown',
+            () => this._setTransitionSuspended(false));
+        this.connections.connect(Main.overview, 'hiding',
+            () => this._setTransitionSuspended(true));
+        this.connections.connect(Main.overview, 'hidden',
+            () => this._setTransitionSuspended(false));
 
         // part for the workspace animation switch
 
@@ -218,6 +227,17 @@ export const OverviewBlur = class OverviewBlur {
 
     _sync_workspace_background_visibility() {
         this._set_workspace_background_visibility(false);
+    }
+
+    _setTransitionSuspended(suspended) {
+        this._transitionSuspended = suspended;
+        const visible = !suspended;
+        [
+            ...this.overview_background_managers,
+            ...this.animation_background_managers,
+        ].forEach(bg_manager => {
+            bg_manager._bms_pipeline?.set_visible?.(visible);
+        });
     }
 
     _set_workspace_background_visibility(visible) {
